@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grammar Mine</title>
+<meta name="description" content="A block-style English grammar revision game for Units 6-10.">
+<meta name="keywords" content="grammar, English, revision, game">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600&family=Pixelify+Sans:wght@400;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sky-top: #6f9cf2;
+  --sky-bottom: #b4d2ff;
+  --panel: #c6c6c6;
+  --panel-light: #ffffff;
+  --panel-dark: #555555;
+  --ink: #2f2f2f;
+  --stone: #7b7b7b;
+  --green: #4caf2a;
+  --green-dark: #2e7d16;
+  --red: #c8352b;
+  --red-dark: #8a1f17;
+  --gold: #fcdb05;
+  --diamond: #4aedd9;
+  --xp: #80ff20;
+  --font-title: "Press Start 2P", ui-monospace, monospace;
+  --font-body: "Pixelify Sans", "Trebuchet MS", ui-monospace, monospace;
+  --font-read: "Lexend", "Segoe UI", system-ui, sans-serif;   /* easy-to-read text for questions and tips */
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--font-body);
+  font-size: 22px;
+  color: var(--ink);
+  background: linear-gradient(var(--sky-top), var(--sky-bottom)) fixed;
+  min-height: 100vh;
+  padding: 16px 16px 140px;
+  overflow-x: hidden;
+}
+#ground {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 112px;
+  background: #866043; image-rendering: pixelated; z-index: 0;
+}
+#ground .grass { height: 32px; background-color: #5d9c34; image-rendering: pixelated; }
+#ground .dirt { height: 80px; image-rendering: pixelated; }
+.cloud {
+  position: fixed; height: 28px; background: #fff; opacity: .9; z-index: 0;
+  box-shadow: 28px -14px 0 #fff, 56px 0 0 #fff;
+  animation: drift linear infinite;
+}
+@keyframes drift { from { transform: translateX(-200px); } to { transform: translateX(110vw); } }
+
+.screen { display: none; position: relative; z-index: 1; max-width: 900px; margin: 0 auto; }
+.screen.active { display: block; }
+
+/* Inventory-style panel */
+.panel {
+  background: var(--panel);
+  border: 3px solid #000;
+  box-shadow: inset 4px 4px 0 var(--panel-light), inset -4px -4px 0 var(--panel-dark);
+  padding: 24px 28px;
+}
+
+/* Stone button */
+.btn {
+  font-family: var(--font-body); font-size: 22px; font-weight: 600;
+  color: #fff; text-shadow: 2px 2px 0 #3a3a3a;
+  background-color: var(--stone);
+  background-size: 64px 64px; image-rendering: pixelated;
+  border: 3px solid #000;
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.4), inset -3px -4px 0 rgba(0,0,0,.45);
+  padding: 12px 22px; cursor: pointer; user-select: none;
+}
+.btn:hover:not(:disabled), .btn:focus-visible { outline: 3px solid #fff; outline-offset: -6px; filter: brightness(1.12) saturate(1.2); }
+.btn:active:not(:disabled) { transform: translateY(2px); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.green { background-color: var(--green); }
+.btn.opt:disabled { opacity: 1; }
+.btn.opt:disabled:not(.correct):not(.wrong):not(.picked) { opacity: .6; }
+[hidden] { display: none !important; }
+.invisible { visibility: hidden; }
+.shake { animation: shake .35s; }
+.answer-input.right { border-color: var(--green); }
+.answer-input.bad { border-color: var(--red); }
+.answer-input:disabled { opacity: .85; }
+.btn.small { font-size: 16px; padding: 8px 14px; }
+
+/* ---------- Menu ---------- */
+.logo {
+  font-family: var(--font-title); text-align: center; color: #e8e8e8;
+  font-size: clamp(30px, 6vw, 56px); line-height: 1.25; margin: 20px 0 6px;
+  text-shadow: 4px 4px 0 #3b3b3b, 8px 8px 0 rgba(0,0,0,.25);
+  letter-spacing: 2px;
+}
+.logo .accent { color: var(--diamond); }
+.tagline {
+  text-align: center; font-family: var(--font-title); font-size: 13px; color: var(--gold);
+  text-shadow: 2px 2px 0 #3f3f00; margin-bottom: 22px; animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { transform: scale(1.06); } }
+.menu-grid { display: grid; gap: 18px; }
+.field-label { font-family: var(--font-title); font-size: 12px; margin: 0 0 10px; color: #3a3a3a; }
+.name-input, .answer-input {
+  font-family: var(--font-body); font-size: 24px; width: 100%;
+  background: #000; color: #fff; border: 3px solid #a0a0a0; padding: 10px 14px; outline: none;
+}
+.name-input:focus, .answer-input:focus { border-color: #fff; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mode-btn { text-align: left; padding: 18px 20px; }
+.mode-btn .mode-title { font-family: var(--font-title); font-size: 16px; display: block; margin-bottom: 10px; }
+.mode-btn .mode-desc { font-size: 18px; font-weight: 400; display: block; }
+.units { display: flex; flex-wrap: wrap; gap: 10px; }
+.unit-chip {
+  font-family: var(--font-body); font-size: 18px; cursor: pointer;
+  border: 3px solid #000; padding: 8px 12px; background: #8b8b8b; color: #eee;
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.3), inset -3px -3px 0 rgba(0,0,0,.35);
+}
+.unit-chip[aria-pressed="true"] { background: var(--green); color: #fff; text-shadow: 1px 1px 0 #1d4d0b; }
+.unit-chip b { font-family: var(--font-title); font-size: 11px; margin-right: 6px; }
+.bests { display: flex; gap: 22px; flex-wrap: wrap; font-size: 19px; }
+.bests span b { font-family: var(--font-title); font-size: 13px; }
+.top-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 4px; }
+
+/* ---------- Game ---------- */
+.hud { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.hud-box {
+  font-family: var(--font-title); font-size: 14px; color: #fff; text-shadow: 2px 2px 0 #222;
+  background: rgba(0,0,0,.55); border: 3px solid #000; padding: 10px 12px; white-space: nowrap;
+}
+.hud-box.timer.low { color: #ff5a4e; animation: pulse .8s infinite; }
+.hud-spacer { flex: 1; }
+.xp-wrap { flex: 1 1 240px; min-width: 200px; }
+.xp-label { font-family: var(--font-title); font-size: 12px; color: var(--xp); text-align: center; text-shadow: 2px 2px 0 #000; margin-bottom: 4px; }
+.xp-bar { height: 16px; background: #1b1b1b; border: 3px solid #000; position: relative; overflow: hidden; }
+.xp-fill { height: 100%; width: 0; background: linear-gradient(#b5ff6a, var(--xp) 50%, #4f9e12); transition: width .4s; }
+.xp-ticks { position: absolute; inset: 0; display: flex; }
+.xp-ticks i { flex: 1; border-right: 2px solid rgba(0,0,0,.6); }
+.xp-ticks i:last-child { border-right: 0; }
+
+.card { position: relative; }
+.q-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.tag { font-family: var(--font-title); font-size: 10px; padding: 7px 9px; background: #5a5a5a; color: #fff; border: 2px solid #000; }
+.tag.type { background: #3c5fa8; }
+.q-text { font-size: 30px; line-height: 1.35; margin: 6px 0 22px; font-weight: 600; }
+.q-text .gap { display: inline-block; min-width: 90px; border-bottom: 4px dashed #555; margin: 0 4px; }
+.q-hint { font-size: 19px; color: #444; margin: -12px 0 18px; }
+
+.options { display: grid; gap: 12px; }
+.opt { display: flex; align-items: center; gap: 16px; text-align: left; font-size: 25px; padding: 14px 18px; }
+.opt .key {
+  font-family: var(--font-title); font-size: 13px; background: rgba(0,0,0,.45);
+  border: 2px solid #000; padding: 6px 8px; flex: none;
+}
+.opt.correct { background-color: var(--green) !important; }
+.opt.wrong { background-color: var(--red) !important; animation: shake .35s; }
+.opt.picked { outline: 3px solid var(--gold); outline-offset: -6px; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+.fill-row { display: flex; gap: 12px; }
+.fill-row .answer-input { flex: 1; }
+
+.tokens { display: flex; flex-wrap: wrap; gap: 10px; }
+.token {
+  font-family: var(--font-body); font-size: 26px; font-weight: 600; color: #fff;
+  text-shadow: 2px 2px 0 #3d2a12; cursor: pointer;
+  background-color: #a07a45; background-size: 64px 64px; image-rendering: pixelated;
+  border: 3px solid #000; padding: 10px 14px;
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.3), inset -3px -4px 0 rgba(0,0,0,.4);
+  transition: transform .1s;
+}
+.token:hover:not(:disabled) { transform: translateY(-4px); }
+.token:disabled { cursor: default; }
+.token.correct { background-color: var(--green); }
+.token.wrong { background-color: var(--red); animation: shake .35s; }
+.token.picked { outline: 3px solid var(--gold); outline-offset: -6px; }
+.spot-help { font-size: 19px; margin: -8px 0 16px; color: #444; }
+
+.feedback {
+  display: none; margin-top: 20px; padding: 16px 18px; border: 3px solid #000; color: #fff;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.45); font-size: 21px; line-height: 1.4;
+}
+.feedback.show { display: block; animation: pop .25s; }
+.feedback.good { background: var(--green-dark); }
+.feedback.bad { background: var(--red-dark); }
+.feedback .fb-title { font-family: var(--font-title); font-size: 16px; display: block; margin-bottom: 10px; }
+.feedback .fb-answer { display: block; margin-bottom: 6px; }
+.feedback .fb-tip { display: block; background: rgba(0,0,0,.25); padding: 8px 10px; margin-top: 8px; }
+.feedback .fb-tip::before { content: "TIP: "; font-family: var(--font-title); font-size: 11px; color: var(--gold); }
+@keyframes pop { from { transform: scale(.95); opacity: 0; } }
+
+.card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 12px; }
+.key-hint { font-size: 16px; color: #555; }
+
+.float-points {
+  position: fixed; font-family: var(--font-title); font-size: 22px; color: var(--gold);
+  text-shadow: 3px 3px 0 #3a3000; pointer-events: none; z-index: 50;
+  animation: floatUp 1s ease-out forwards;
+}
+@keyframes floatUp { to { transform: translateY(-90px); opacity: 0; } }
+.particle { position: fixed; width: 10px; height: 10px; pointer-events: none; z-index: 49; border: 1px solid rgba(0,0,0,.4); }
+
+/* ---------- Results ---------- */
+.results-head { text-align: center; }
+.rank-block { width: 96px; height: 96px; margin: 0 auto 14px; border: 4px solid #000; image-rendering: pixelated; background-size: cover; animation: spin-in .7s ease-out; }
+@keyframes spin-in { from { transform: rotate(-200deg) scale(.2); } }
+.rank-name { font-family: var(--font-title); font-size: 22px; margin-bottom: 8px; }
+.big-score { font-family: var(--font-title); font-size: 34px; color: #1f6fa8; margin: 12px 0; }
+.breakdown { max-width: 460px; margin: 10px auto 18px; font-size: 21px; }
+.breakdown div { display: flex; justify-content: space-between; border-bottom: 2px dashed #999; padding: 6px 0; }
+.breakdown div.total { font-weight: 600; border-bottom: 0; }
+.new-best { font-family: var(--font-title); font-size: 13px; color: #b8860b; animation: pulse .9s infinite; }
+.result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 16px 0 6px; }
+.review-title { font-family: var(--font-title); font-size: 15px; margin: 26px 0 12px; }
+.review-item { background: #b3b3b3; border: 3px solid #000; padding: 12px 14px; margin-bottom: 10px; font-size: 20px; line-height: 1.4; }
+.review-item .ri-q { font-weight: 600; }
+.review-item .ri-yours { color: var(--red-dark); }
+.review-item .ri-right { color: #1c5e0b; }
+.review-item .ri-tip { color: #333; font-size: 18px; }
+.all-right { font-size: 22px; text-align: center; }
+
+/* Text he has to read carefully uses the plain, legible font */
+.q-text, .q-hint, .spot-help, .opt, .token, .answer-input, .name-input, .mode-desc,
+.feedback .fb-answer, .feedback .fb-tip, .review-item, #resultLine, .breakdown { font-family: var(--font-read); }
+.q-text { font-size: 28px; }
+.opt, .token { font-size: 23px; font-weight: 600; }
+.mode-btn .mode-desc { font-size: 16px; }
+.feedback .fb-answer, .feedback .fb-tip { font-size: 19px; }
+.review-item { font-size: 18px; }
+.review-item .ri-tip { font-size: 16px; }
+
+@media (max-width: 640px) {
+  body { font-size: 19px; }
+  .modes { grid-template-columns: 1fr; }
+  .q-text { font-size: 24px; }
+  .opt, .token { font-size: 21px; }
+  .panel { padding: 18px 16px; }
+}
+</style>
+</head>
+<body>
+<div id="ground"><div class="grass" id="grassStrip"></div><div class="dirt" id="dirtStrip"></div></div>
+
+<!-- MENU -->
+<section class="screen active" id="menu">
+  <div class="top-bar"><button class="btn small" id="muteBtn" type="button" aria-label="Toggle sound">🔊 Sound on</button></div>
+  <h1 class="logo">GRAMMAR<br><span class="accent">MINE</span></h1>
+  <div class="tagline">Units 6-10 revision!</div>
+  <div class="panel menu-grid">
+    <div>
+      <p class="field-label">PLAYER NAME</p>
+      <input class="name-input" id="nameInput" maxlength="16" placeholder="Type your name" autocomplete="off">
+    </div>
+    <div>
+      <p class="field-label">UNITS (click to switch on/off)</p>
+      <div class="units" id="unitChips"></div>
+    </div>
+    <div>
+      <p class="field-label">CHOOSE A MODE</p>
+      <div class="modes">
+        <button class="btn mode-btn green" id="practiceBtn" type="button">
+          <span class="mode-title">⛏ PRACTICE</span>
+          <span class="mode-desc">No timer. See if you're right after every question, with a tip.</span>
+        </button>
+        <button class="btn mode-btn" id="testBtn" type="button">
+          <span class="mode-title">⏱ TEST</span>
+          <span class="mode-desc">10 minutes. Like the real test: results at the end.</span>
+        </button>
+      </div>
+    </div>
+    <div>
+      <p class="field-label">BEST SCORES</p>
+      <div class="bests" id="bests"></div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="screen" id="game">
+  <div class="hud">
+    <div class="hud-box" id="hudCount">Q 1/20</div>
+    <div class="xp-wrap">
+      <div class="xp-label" id="xpLabel">LEVEL 1</div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div><div class="xp-ticks" id="xpTicks"></div></div>
+    </div>
+    <div class="hud-box" id="hudScore">💎 0</div>
+    <div class="hud-box" id="hudStreak">🔥 0</div>
+    <div class="hud-box timer" id="hudTimer">⏱ 10:00</div>
+  </div>
+  <div class="panel card" id="card">
+    <div class="q-meta"><span class="tag" id="qUnit">UNIT 6</span><span class="tag type" id="qType">CHOOSE</span></div>
+    <div class="q-text" id="qText"></div>
+    <div id="qBody"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="card-actions">
+      <button class="btn small" id="quitBtn" type="button">✖ Quit</button>
+      <span class="key-hint" id="keyHint"></span>
+      <button class="btn green invisible" id="nextBtn" type="button">Next ▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="screen" id="results">
+  <div class="panel">
+    <div class="results-head">
+      <div class="rank-block" id="rankBlock"></div>
+      <div class="rank-name" id="rankName"></div>
+      <div id="resultLine"></div>
+      <div class="big-score" id="bigScore"></div>
+      <div class="new-best" id="newBest"></div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="result-actions">
+      <button class="btn green" id="againBtn" type="button">↻ Play again</button>
+      <button class="btn" id="retryBtn" type="button">⛏ Practice my mistakes</button>
+      <button class="btn" id="menuBtn" type="button">☰ Menu</button>
+    </div>
+    <div id="review"></div>
+  </div>
+</section>
+
+<script>
+// ===== Question bank =====
+// Types:
+//   mc   : q (use ___ for the gap), o: options, a: index of the right option
+//   fill : q, a: accepted answers, hint (optional), traps: answers that are never
+//          forgiven as typos, strict: no typo forgiveness at all (spelling is the point)
+//   spot : s: sentence with the wrong word in [brackets], fix: the right word(s)
+// Every question has u (unit) and tip (shown after answering).
+const UNITS = {
+  6: "Present Continuous",
+  7: "Pronouns & Imperative",
+  8: "There is/are & Some/Any/No",
+  9: "Present Simple",
+  10: "Much, Many, A few, A little",
+};
+const Q = [];
+
+// ---------- Unit 6: Present Continuous ----------
+Q.push(
+  { u: 6, t: "mc", q: "Look! The children ___ in the garden.", o: ["play", "are playing", "plays"], a: 1,
+    tip: "\"Look!\" means it's happening right now, so we use the present continuous: are + playing." },
+  { u: 6, t: "mc", q: "___ you listening to me?", o: ["Do", "Are", "Is"], a: 1,
+    tip: "Questions: Am / Is / Are + subject + verb-ing. \"you\" goes with \"Are\"." },
+  { u: 6, t: "mc", q: "\"Is it raining?\" \"No, it ___.\"", o: ["isn't", "doesn't", "aren't"], a: 0,
+    tip: "Short answers use the verb \"to be\": Yes, it is. / No, it isn't." },
+  { u: 6, t: "mc", q: "\"Are they watching TV?\" \"Yes, they ___.\"", o: ["are", "do", "watching"], a: 0,
+    tip: "Short answers don't repeat the -ing verb: Yes, they are. / No, they aren't." },
+  { u: 6, t: "mc", q: "Which spelling is correct? write + ing", o: ["writeing", "writing", "writting"], a: 1,
+    tip: "Verbs ending in -e lose the -e: write → writing, dance → dancing." },
+  { u: 6, t: "mc", q: "Which spelling is correct? swim + ing", o: ["swiming", "swimming", "swimeing"], a: 1,
+    tip: "One short vowel + one consonant: double the consonant. swim → swimming, sit → sitting." },
+  { u: 6, t: "mc", q: "Which spelling is correct? lie + ing", o: ["lieing", "liing", "lying"], a: 2,
+    tip: "Verbs ending in -ie change to -y + ing: lie → lying, die → dying." },
+  { u: 6, t: "mc", q: "Which spelling is correct? travel + ing", o: ["traveling", "travelling", "travveling"], a: 1,
+    tip: "Verbs ending in -l double the l: travel → travelling." },
+  { u: 6, t: "mc", q: "Which spelling is correct? study + ing", o: ["studing", "studying", "studiing"], a: 1,
+    tip: "Keep the y and add -ing: study → studying, play → playing." },
+  { u: 6, t: "mc", q: "Which spelling is correct? see + ing", o: ["seing", "seeing", "seeeing"], a: 1,
+    tip: "see keeps both e's: see → seeing. Only a single e at the end is dropped." },
+  { u: 6, t: "mc", q: "Which spelling is correct? open + ing", o: ["openning", "opening", "openeing"], a: 1,
+    tip: "We say O-pen (strong first part), so the n does NOT double: open → opening." },
+  { u: 6, t: "mc", q: "Which spelling is correct? stop + ing", o: ["stoping", "stopping", "stopeing"], a: 1,
+    tip: "Short vowel + one consonant: double it. stop → stopping, run → running." },
+  { u: 6, t: "mc", q: "She ___ very hard these days.", o: ["work", "is working", "works"], a: 1,
+    tip: "\"these days\" = for a short time now, so we use the present continuous." },
+  { u: 6, t: "mc", q: "Which time expression goes with the present continuous?", o: ["every day", "at the moment", "on Mondays"], a: 1,
+    tip: "Present continuous time words: now, at the moment, at present, these days." },
+  { u: 6, t: "mc", q: "\"Can you answer the phone?\" \"Sorry, I ___ a bath.\"", o: ["have", "am having", "has"], a: 1,
+    tip: "have a bath / a shower / lunch / a lesson = DO something, so it can be continuous: I'm having a bath." },
+  { u: 6, t: "mc", q: "What ___ he doing?", o: ["is", "are", "does"], a: 0,
+    tip: "he / she / it → is: What is he doing?" },
+  { u: 6, t: "mc", q: "We ___ not watching TV.", o: ["is", "am", "are"], a: 2,
+    tip: "I am, he/she/it is, we/you/they are." },
+  { u: 6, t: "mc", q: "Put the words in order: coming / the train / is / ?", o: ["Is the train coming?", "The train is coming?", "Is coming the train?"], a: 0,
+    tip: "Questions: Is + subject + -ing: Is the train coming?" },
+  { u: 6, t: "mc", q: "Where ___ your friends staying?", o: ["is", "are", "do"], a: 1,
+    tip: "\"your friends\" = they → are." },
+  { u: 6, t: "mc", q: "My mum ___ dinner at the moment.", o: ["cooking", "is cooking", "cook"], a: 1,
+    tip: "Don't forget the \"is\"! She cooking ✗ → She is cooking ✓" },
+
+  { u: 6, t: "fill", q: "Look! The dog ___ after the cat.", hint: "(run)", a: ["is running"], strict: true,
+    traps: ["is runing", "running", "runs"],
+    tip: "is + running. Short vowel + one consonant → double it: run → running." },
+  { u: 6, t: "fill", q: "Be quiet! The baby ___ .", hint: "(sleep)", a: ["is sleeping"], strict: true,
+    traps: ["is sleping", "sleeping", "sleeps"],
+    tip: "is + sleeping. Two vowels (ee) before the p, so no doubling: sleeping." },
+  { u: 6, t: "fill", q: "Mary ___ a cake in the kitchen.", hint: "(make)", a: ["is making"], strict: true,
+    traps: ["is makeing", "making", "makes"],
+    tip: "make loses the -e: making." },
+  { u: 6, t: "fill", q: "Look at me! I ___ on a horse!", hint: "(sit)", a: ["am sitting"], strict: true,
+    traps: ["am siting", "sitting", "is sitting"],
+    tip: "I am + sitting (double t)." },
+  { u: 6, t: "fill", q: "Write the -ing form: shop → ___", a: ["shopping"], strict: true, traps: ["shoping"],
+    tip: "Short vowel + one consonant → double: shopping." },
+  { u: 6, t: "fill", q: "Write the -ing form: dance → ___", a: ["dancing"], strict: true, traps: ["danceing"],
+    tip: "Drop the -e: dancing." },
+  { u: 6, t: "fill", q: "Write the -ing form: die → ___", a: ["dying"], strict: true, traps: ["dieing", "diing"],
+    tip: "-ie → y + ing: dying." },
+  { u: 6, t: "fill", q: "Write the -ing form: study → ___", a: ["studying"], strict: true, traps: ["studing", "studiing"],
+    tip: "Keep the y: studying." },
+
+  { u: 6, t: "spot", s: "I am [play] tennis now.", fix: "playing",
+    tip: "Present continuous needs am/is/are + verb-ing: I am playing." },
+  { u: 6, t: "spot", s: "George and Mary [is] watching TV.", fix: "are",
+    tip: "George and Mary = they → are." },
+  { u: 6, t: "spot", s: "What are you [do]?", fix: "doing",
+    tip: "Are you + verb-ing: What are you doing?" },
+  { u: 6, t: "spot", s: "You [isn't] listening to the teacher.", fix: "aren't",
+    tip: "you → are / aren't." },
+  { u: 6, t: "spot", s: "She is [siting] on the sofa.", fix: "sitting",
+    tip: "sit → sitting (double t)." },
+  { u: 6, t: "spot", s: "Dad is [writeing] an email.", fix: "writing",
+    tip: "write → writing (drop the -e)." },
+);
+
+// ---------- Unit 7: Subject & Object Pronouns / The Imperative ----------
+Q.push(
+  { u: 7, t: "mc", q: "Look at ___! They are acrobats.", o: ["they", "them", "their"], a: 1,
+    tip: "After a verb or after at / to / with / for, use an object pronoun: me, you, him, her, it, us, them." },
+  { u: 7, t: "mc", q: "Give that ball to ___, please.", o: ["I", "me", "my"], a: 1,
+    tip: "After \"to\" we need an object pronoun: to me." },
+  { u: 7, t: "mc", q: "___ has got a blue dress.", o: ["Her", "She", "Hers"], a: 1,
+    tip: "Before the verb we need a subject pronoun: I, you, he, she, it, we, they." },
+  { u: 7, t: "mc", q: "Do you want to play with ___?", o: ["we", "us", "our"], a: 1,
+    tip: "After \"with\": object pronoun. we → us." },
+  { u: 7, t: "mc", q: "That's Mr Brown, our teacher. Listen to ___!", o: ["he", "him", "his"], a: 1,
+    tip: "he → him after \"to\"." },
+  { u: 7, t: "mc", q: "Tim and Ann are my cousins. ___ live in Germany.", o: ["Them", "They", "Their"], a: 1,
+    tip: "Before the verb \"live\" we need a subject pronoun: They." },
+  { u: 7, t: "mc", q: "It's Mike on the phone. ___ wants to talk to you.", o: ["Him", "He", "His"], a: 1,
+    tip: "Subject (before the verb): He wants..." },
+  { u: 7, t: "mc", q: "Emily likes cream cakes. = She likes ___.", o: ["it", "them", "they"], a: 1,
+    tip: "cream cakes = plural thing, after the verb → them." },
+  { u: 7, t: "mc", q: "My sister and I live near you. = ___ live near you.", o: ["Us", "We", "They"], a: 1,
+    tip: "my sister and I = we (subject)." },
+  { u: 7, t: "mc", q: "Is this book for you and Matthew? = Is this book for ___?", o: ["you", "us", "them"], a: 0,
+    tip: "you and Matthew = you (plural). The object form of \"you\" is also \"you\"." },
+  { u: 7, t: "mc", q: "Caroline is coming with Bill and me. = She is coming with ___.", o: ["we", "us", "them"], a: 1,
+    tip: "Bill and me = us (after \"with\")." },
+  { u: 7, t: "mc", q: "___ the window! It's cold.", o: ["Not open", "Don't open", "Doesn't open"], a: 1,
+    tip: "Negative imperative: Don't + verb. Don't open the window!" },
+  { u: 7, t: "mc", q: "I'm bored. ___ a game!", o: ["Let's play", "Let's to play", "Let's playing"], a: 0,
+    tip: "Let's + verb (no \"to\", no -ing): Let's play." },
+  { u: 7, t: "mc", q: "The baby is sleeping. ___ a noise!", o: ["Don't make", "Not make", "Let's make"], a: 0,
+    tip: "Don't + verb tells someone NOT to do something." },
+  { u: 7, t: "mc", q: "\"Have some cake.\" What is this?", o: ["an order", "an offer", "a suggestion"], a: 1,
+    tip: "Imperative uses: orders (Stop that noise!), instructions (Cut the paper.), offers (Have some cake.), requests (Be quiet, please.)." },
+  { u: 7, t: "mc", q: "\"Let's read the map.\" What is this?", o: ["an order", "a suggestion", "an offer"], a: 1,
+    tip: "Let's + verb makes a suggestion." },
+  { u: 7, t: "mc", q: "\"Stop that noise!\" What is this?", o: ["an order", "an offer", "a suggestion"], a: 0,
+    tip: "A strong imperative without \"please\" is an order." },
+  { u: 7, t: "mc", q: "\"Cut the paper into two pieces.\" What is this?", o: ["an offer", "an instruction", "a suggestion"], a: 1,
+    tip: "Telling someone how to do something = an instruction." },
+  { u: 7, t: "mc", q: "Which sentence is correct?", o: ["Don't to touch the wire!", "Don't touch the wire!", "Not touch the wire!"], a: 1,
+    tip: "Don't + verb, with no \"to\"." },
+  { u: 7, t: "mc", q: "Give the money to Helen and me! → Don't give it to ___!", o: ["we", "us", "them"], a: 1,
+    tip: "Helen and me = us." },
+
+  { u: 7, t: "fill", q: "I can't find my glasses. I don't remember where I put ___.", a: ["them"], traps: ["they", "it"],
+    tip: "glasses = plural thing → them." },
+  { u: 7, t: "fill", q: "Come here, John! I need to talk to ___.", a: ["you"],
+    tip: "Talking to John directly → you." },
+  { u: 7, t: "fill", q: "We're playing cards. Do you want to join ___?", a: ["us"], traps: ["we"],
+    tip: "we → us after a verb." },
+  { u: 7, t: "fill", q: "\"Do you know that girl?\" \"Yes, I live next door to ___.\"", a: ["her"], traps: ["she"],
+    tip: "she → her after \"to\"." },
+  { u: 7, t: "fill", q: "That vase is expensive. ___ it!", hint: "(break) - negative", a: ["Don't break", "Do not break"], strict: true,
+    traps: ["not break", "doesn't break", "don't breaks"],
+    tip: "Negative imperative: Don't + verb → Don't break it!" },
+  { u: 7, t: "fill", q: "I'm hungry. ___ make some sandwiches!", hint: "(suggestion)", a: ["Let's"], strict: true,
+    traps: ["lets", "let"],
+    tip: "Suggestions: Let's + verb. Don't forget the apostrophe: Let's." },
+
+  { u: 7, t: "spot", s: "That is my jacket. Give it to [I], please.", fix: "me",
+    tip: "After \"to\": object pronoun → me." },
+  { u: 7, t: "spot", s: "Tim and Ann are my cousins. [Them] live in Germany.", fix: "They",
+    tip: "Before the verb: subject pronoun → They." },
+  { u: 7, t: "spot", s: "It's Mike on the phone. [Him] wants to talk to you.", fix: "He",
+    tip: "Before the verb: subject pronoun → He." },
+  { u: 7, t: "spot", s: "Don't [opens] the window! It's cold.", fix: "open",
+    tip: "Imperative: the verb has no -s. Don't open..." },
+  { u: 7, t: "spot", s: "Let's [to] go shopping!", fix: "",
+    tip: "No \"to\" after Let's: Let's go shopping!" },
+  { u: 7, t: "spot", s: "\"Yes, please come with [I].\"", fix: "me",
+    tip: "After \"with\": object pronoun → me." },
+  { u: 7, t: "spot", s: "Pass me those photographs. I want to look at [it].", fix: "them",
+    tip: "those photographs = plural → them." },
+);
+
+// ---------- Unit 8: There is/are, Some/Any/No, Somebody/Anything/Nowhere ----------
+Q.push(
+  { u: 8, t: "mc", q: "___ twenty-five children in my class.", o: ["There is", "There are", "It is"], a: 1,
+    tip: "There is + one thing. There are + many things (twenty-five children)." },
+  { u: 8, t: "mc", q: "___ a letter on your desk. It is from your uncle.", o: ["There is", "There are", "It is"], a: 0,
+    tip: "First time we say something exists → There is. Then we talk about it → It is." },
+  { u: 8, t: "mc", q: "\"Where's my football?\" \"___ in the garden.\"", o: ["There is", "It is", "There are"], a: 1,
+    tip: "We already know which football, so → It is in the garden." },
+  { u: 8, t: "mc", q: "There are two parks in this town. ___ quite big.", o: ["There are", "They are", "It is"], a: 1,
+    tip: "We already mentioned the parks → They are." },
+  { u: 8, t: "mc", q: "\"Is there a bus?\" \"No, there ___.\"", o: ["isn't", "aren't", "is"], a: 0,
+    tip: "Is there...? → Yes, there is. / No, there isn't." },
+  { u: 8, t: "mc", q: "\"Are there any carrots?\" \"Yes, there ___.\"", o: ["is", "are", "aren't"], a: 1,
+    tip: "Are there...? → Yes, there are. / No, there aren't." },
+  { u: 8, t: "mc", q: "\"Would you like ___ cake?\" \"No, thank you.\"", o: ["any", "some", "no"], a: 1,
+    tip: "We use \"some\" in questions when we OFFER something: Would you like some...?" },
+  { u: 8, t: "mc", q: "I haven't got ___ pets.", o: ["some", "any", "no"], a: 1,
+    tip: "Negative sentence (haven't) → any." },
+  { u: 8, t: "mc", q: "Have you got ___ fresh eggs?", o: ["some", "any", "no"], a: 1,
+    tip: "Normal question → any." },
+  { u: 8, t: "mc", q: "We can't make a cake because we've got ___ sugar.", o: ["no", "any", "some"], a: 0,
+    tip: "no = not any. We've got no sugar = We haven't got any sugar." },
+  { u: 8, t: "mc", q: "I'm hungry. Can I have ___ sandwiches, please?", o: ["any", "some", "no"], a: 1,
+    tip: "We use \"some\" in questions when we ASK FOR something: Can I have some...?" },
+  { u: 8, t: "mc", q: "It's a secret. Don't tell ___!", o: ["anyone", "someone", "no one"], a: 0,
+    tip: "Negative sentence (Don't) → anyone / anybody." },
+  { u: 8, t: "mc", q: "I live alone. ___ lives with me.", o: ["Somebody", "Anybody", "Nobody"], a: 2,
+    tip: "Nobody = not anybody. The verb (lives) is positive, so we use nobody." },
+  { u: 8, t: "mc", q: "\"Is there ___ in your suitcase?\" \"No, it's empty.\"", o: ["something", "anything", "nothing"], a: 1,
+    tip: "Question → anything." },
+  { u: 8, t: "mc", q: "I put my umbrella ___, but I can't remember where.", o: ["somewhere", "anywhere", "nowhere"], a: 0,
+    tip: "Positive sentence → somewhere." },
+  { u: 8, t: "mc", q: "We aren't going ___ this summer.", o: ["somewhere", "anywhere", "nowhere"], a: 1,
+    tip: "Negative (aren't) → anywhere. Never two negatives together!" },
+  { u: 8, t: "mc", q: "\"Where are you going?\" \"___. I'm staying at home.\"", o: ["Nowhere", "Anywhere", "Somewhere"], a: 0,
+    tip: "A one-word negative answer → Nowhere / Nobody / Nothing." },
+  { u: 8, t: "mc", q: "I don't know ___ about French history.", o: ["nothing", "anything", "something"], a: 1,
+    tip: "don't + anything. \"don't know nothing\" is a double negative ✗." },
+  { u: 8, t: "mc", q: "Melissa wants to buy ___ special for her friend.", o: ["anything", "something", "nothing"], a: 1,
+    tip: "Positive sentence → something." },
+  { u: 8, t: "mc", q: "Which sentence means the same as \"There isn't anything on the table\"?", o: ["There is nothing on the table.", "There isn't nothing on the table.", "There is anything on the table."], a: 0,
+    tip: "isn't anything = is nothing." },
+
+  { u: 8, t: "fill", q: "Hello? Is there ___ at home?", hint: "(somebody / anybody / nobody)", a: ["anybody", "anyone"],
+    traps: ["any body", "any one", "somebody", "nobody"],
+    tip: "Question → anybody / anyone. Written as ONE word." },
+  { u: 8, t: "fill", q: "Come on! I don't believe ___ in that magazine.", hint: "(something / anything / nothing)", a: ["anything"],
+    traps: ["any thing", "anythink", "nothing", "something"],
+    tip: "Negative → anything. One word, and it ends in -thing, not -think!" },
+  { u: 8, t: "fill", q: "\"What are you doing?\" \"___. I'm bored.\"", hint: "(something / anything / nothing)", a: ["Nothing"],
+    traps: ["no thing", "nothink", "anything", "something"],
+    tip: "One-word negative answer → Nothing. One word, ending in -thing." },
+  { u: 8, t: "fill", q: "My foot hurts. There's ___ in my shoe.", hint: "(something / anything / nothing)", a: ["something"],
+    traps: ["some thing", "somethink", "anything", "nothing"],
+    tip: "Positive sentence → something. One word!" },
+  { u: 8, t: "fill", q: "I don't like this café. Let's go ___ else.", hint: "(somewhere / anywhere / nowhere)", a: ["somewhere"],
+    traps: ["some where", "anywhere", "nowhere"],
+    tip: "Positive suggestion → somewhere." },
+  { u: 8, t: "fill", q: "\"___ any biscuits left?\" \"No, I'm sorry, I ate them all.\"", hint: "(there is / there are)", a: ["Are there"],
+    traps: ["is there", "there are", "there is"],
+    tip: "Question with plural (biscuits) → Are there...?" },
+  { u: 8, t: "fill", q: "It is winter now. ___ any leaves on the trees.", hint: "(there is / there are) - negative", a: ["There aren't", "There are not"],
+    traps: ["there isn't", "there is not", "there are"],
+    tip: "Plural (leaves) + negative → There aren't any..." },
+
+  { u: 8, t: "spot", s: "There isn't [some] sugar in my coffee.", fix: "any",
+    tip: "Negative sentence → any." },
+  { u: 8, t: "spot", s: "There isn't [nobody] in the garden.", fix: "anybody",
+    tip: "isn't + anybody. Never two negatives together." },
+  { u: 8, t: "spot", s: "Have you got [nothing] in your bag?", fix: "anything",
+    tip: "Question → anything." },
+  { u: 8, t: "spot", s: "The bus stops [anywhere] near the park.", fix: "somewhere",
+    tip: "Positive sentence → somewhere." },
+  { u: 8, t: "spot", s: "There [is] some apples on the table.", fix: "are",
+    tip: "apples = plural → There are." },
+  { u: 8, t: "spot", s: "I can't see [nobody] in the garden.", fix: "anybody",
+    tip: "can't + anybody. (Or: I can see nobody.)" },
+  { u: 8, t: "spot", s: "Is there [nobody] in the room?", fix: "anybody",
+    tip: "Question → anybody." },
+);
+
+// ---------- Unit 9: Present Simple (+ vs Present Continuous, adverbs of frequency) ----------
+Q.push(
+  { u: 9, t: "mc", q: "Tina ___ to school every day.", o: ["walk", "walks", "is walking"], a: 1,
+    tip: "Present simple, he/she/it → add -s: she walks. \"every day\" = routine." },
+  { u: 9, t: "mc", q: "he / she / it form of \"watch\":", o: ["watchs", "watches", "watchies"], a: 1,
+    tip: "Verbs ending in -ss, -sh, -ch, -x, -o → add -es: watches, washes, goes." },
+  { u: 9, t: "mc", q: "he / she / it form of \"study\":", o: ["studys", "studies", "studyes"], a: 1,
+    tip: "Consonant + y → -ies: study → studies, cry → cries." },
+  { u: 9, t: "mc", q: "he / she / it form of \"play\":", o: ["plaies", "plays", "playes"], a: 1,
+    tip: "Vowel + y → just add -s: play → plays." },
+  { u: 9, t: "mc", q: "he / she / it form of \"go\":", o: ["gos", "goes", "goies"], a: 1,
+    tip: "Verbs ending in -o → add -es: go → goes, do → does." },
+  { u: 9, t: "mc", q: "___ she work in the garden every day?", o: ["Do", "Does", "Is"], a: 1,
+    tip: "Questions: Do (I, you, we, they) / Does (he, she, it) + verb." },
+  { u: 9, t: "mc", q: "Polar bears ___ live in hot places.", o: ["doesn't", "don't", "aren't"], a: 1,
+    tip: "Polar bears = they → don't." },
+  { u: 9, t: "mc", q: "\"Does your brother drive fast?\" \"No, he ___.\"", o: ["don't", "doesn't", "isn't"], a: 1,
+    tip: "Does he...? → Yes, he does. / No, he doesn't." },
+  { u: 9, t: "mc", q: "\"Do you like pizza?\" \"Yes, I ___.\"", o: ["do", "like", "am"], a: 0,
+    tip: "Do you...? → Yes, I do. / No, I don't." },
+  { u: 9, t: "mc", q: "Add \"never\": Kate goes to bed late.", o: ["Kate goes never to bed late.", "Kate never goes to bed late.", "Never Kate goes to bed late."], a: 1,
+    tip: "Adverbs of frequency go BEFORE the main verb: never goes." },
+  { u: 9, t: "mc", q: "Add \"always\": He is late for work.", o: ["He always is late for work.", "He is always late for work.", "He is late for work always."], a: 1,
+    tip: "...but AFTER the verb \"to be\": is always." },
+  { u: 9, t: "mc", q: "Add \"never\": He can wake up before 10 o'clock.", o: ["He never can wake up before 10 o'clock.", "He can never wake up before 10 o'clock.", "He can wake never up before 10 o'clock."], a: 1,
+    tip: "With can, do, etc. the adverb goes AFTER them: can never." },
+  { u: 9, t: "mc", q: "Add \"often\": They don't go to the cinema.", o: ["They often don't go to the cinema.", "They don't often go to the cinema.", "They don't go often to the cinema."], a: 1,
+    tip: "With don't / doesn't the adverb goes after them, before the main verb: don't often go." },
+  { u: 9, t: "mc", q: "Which list goes from 0% to 100%?", o: ["never → sometimes → usually → always", "always → often → never → sometimes", "sometimes → never → always → often"], a: 0,
+    tip: "never (0%) → seldom/rarely → sometimes → often → usually → always (100%)." },
+  { u: 9, t: "mc", q: "Simon ___ like tea.", o: ["don't", "doesn't", "isn't"], a: 1,
+    tip: "he / she / it → doesn't + verb (no -s): doesn't like." },
+  { u: 9, t: "mc", q: "My shoes are old. I ___ a new pair.", o: ["need", "am needing", "needs"], a: 0,
+    tip: "Some verbs are NOT used in the continuous: need, want, like, love, hate, know, understand, believe, remember, forget, belong, see, hear, smell, think (=believe)." },
+  { u: 9, t: "mc", q: "I ___ you're right.", o: ["am thinking", "think", "thinks"], a: 1,
+    tip: "think = believe → no -ing: I think." },
+  { u: 9, t: "mc", q: "That villa ___ to a rich businessman.", o: ["is belonging", "belongs", "belong"], a: 1,
+    tip: "\"belong\" is never in the continuous: it belongs." },
+  { u: 9, t: "mc", q: "Billy ___. Don't make any noise!", o: ["sleeps", "is sleeping", "sleep"], a: 1,
+    tip: "Happening right now → present continuous." },
+  { u: 9, t: "mc", q: "We usually ___ out on Sundays.", o: ["eating", "eat", "eats"], a: 1,
+    tip: "\"usually\" = routine → present simple. we → eat." },
+  { u: 9, t: "mc", q: "Water ___ at 100 °C.", o: ["boils", "is boiling", "boil"], a: 0,
+    tip: "General truths and laws of nature → present simple." },
+  { u: 9, t: "mc", q: "Today is a holiday. George usually gets up at 7:30, but today he ___.", o: ["still sleeps", "is still sleeping", "still sleep"], a: 1,
+    tip: "usually → present simple. today / now → present continuous." },
+  { u: 9, t: "mc", q: "Which time expression goes with the present simple?", o: ["now", "every morning", "at the moment"], a: 1,
+    tip: "Present simple: every day/week, usually, always, on Mondays, in the morning, at night..." },
+  { u: 9, t: "mc", q: "This new perfume ___ lovely.", o: ["is smelling", "smells", "smell"], a: 1,
+    tip: "\"smell\" (= has a smell) is not used in the continuous." },
+  { u: 9, t: "mc", q: "What ___ you usually do in the evening?", o: ["are", "do", "does"], a: 1,
+    tip: "Present simple question with you → do." },
+  { u: 9, t: "mc", q: "Uncle Tom ___ a lot of people in our town.", o: ["is knowing", "know", "knows"], a: 2,
+    tip: "\"know\" is never in the continuous. he → knows." },
+
+  { u: 9, t: "fill", q: "Susan ___ her hair every day.", hint: "(wash)", a: ["washes"], strict: true, traps: ["washs", "wash"],
+    tip: "-sh → add -es: washes." },
+  { u: 9, t: "fill", q: "Tony ___ Maths at university.", hint: "(study)", a: ["studies"], strict: true, traps: ["studys", "study"],
+    tip: "Consonant + y → -ies: studies." },
+  { u: 9, t: "fill", q: "Mike ___ his homework every evening.", hint: "(do)", a: ["does"], strict: true, traps: ["dos", "do"],
+    tip: "-o → add -es: does." },
+  { u: 9, t: "fill", q: "My dad ___ cars. He is a mechanic.", hint: "(fix)", a: ["fixes"], strict: true, traps: ["fixs", "fix"],
+    tip: "-x → add -es: fixes." },
+  { u: 9, t: "fill", q: "Sally ___ coffee.", hint: "(not like)", a: ["doesn't like", "does not like"], strict: true,
+    traps: ["doesn't likes", "don't like", "not likes"],
+    tip: "he/she/it → doesn't + verb with NO -s: doesn't like." },
+  { u: 9, t: "fill", q: "\"___ your sister speak French?\" \"Yes, she does.\"", a: ["Does"], traps: ["do", "is"],
+    tip: "your sister = she → Does." },
+  { u: 9, t: "fill", q: "Sarah never ___ people's names.", hint: "(forget)", a: ["forgets"], strict: true, traps: ["forget", "is forgetting"],
+    tip: "she → forgets. \"forget\" is never in the continuous." },
+
+  { u: 9, t: "spot", s: "He [don't] speak English.", fix: "doesn't",
+    tip: "he → doesn't." },
+  { u: 9, t: "spot", s: "Mark [walk] to school every day.", fix: "walks",
+    tip: "he → walks (add -s)." },
+  { u: 9, t: "spot", s: "We [needs] some sugar.", fix: "need",
+    tip: "we → need (no -s). Only he/she/it get -s." },
+  { u: 9, t: "spot", s: "Peter always [do] his homework.", fix: "does",
+    tip: "Peter = he → does." },
+  { u: 9, t: "spot", s: "[Does] you work in a bank?", fix: "Do",
+    tip: "you → Do." },
+  { u: 9, t: "spot", s: "He [washes] the dog at the moment.", fix: "is washing",
+    tip: "\"at the moment\" → present continuous: is washing." },
+  { u: 9, t: "spot", s: "The sun [rise] in the east.", fix: "rises",
+    tip: "The sun = it → rises. Laws of nature → present simple." },
+  { u: 9, t: "spot", s: "Susan and Jo [lives] in New York.", fix: "live",
+    tip: "Susan and Jo = they → live (no -s)." },
+);
+
+// ---------- Unit 10: A lot of, Much, Many, (A) little, (A) few ----------
+Q.push(
+  { u: 10, t: "mc", q: "How ___ money have you got?", o: ["many", "much", "a lot"], a: 1,
+    tip: "much + uncountable nouns (money, sugar, milk, water, time...)." },
+  { u: 10, t: "mc", q: "How ___ boys are there in your class?", o: ["much", "many", "a little"], a: 1,
+    tip: "many + plural countable nouns (boys, books, apples...)." },
+  { u: 10, t: "mc", q: "There aren't ___ books on the shelf.", o: ["much", "many", "a little"], a: 1,
+    tip: "books = countable, plural → many." },
+  { u: 10, t: "mc", q: "There isn't ___ sugar in the bowl.", o: ["many", "much", "a few"], a: 1,
+    tip: "sugar = uncountable → much." },
+  { u: 10, t: "mc", q: "She's got ___ friends.", o: ["a lot of", "much", "a little"], a: 0,
+    tip: "In positive sentences we usually use a lot of / lots of (with both kinds of nouns)." },
+  { u: 10, t: "mc", q: "\"Are there many people in the room?\" \"Yes, there are ___.\"", o: ["a lot of", "a lot", "much"], a: 1,
+    tip: "No noun after it → \"a lot\" (without \"of\")." },
+  { u: 10, t: "mc", q: "Carol has got ___ flour. She can make a cake.", o: ["a little", "a few", "few"], a: 0,
+    tip: "a little = some, enough (uncountable). flour is uncountable." },
+  { u: 10, t: "mc", q: "Jill has got very ___ flour. She can't make a cake.", o: ["few", "little", "much"], a: 1,
+    tip: "(very) little = almost no (uncountable)." },
+  { u: 10, t: "mc", q: "I've got ___ apples. I can make an apple pie.", o: ["a little", "a few", "very few"], a: 1,
+    tip: "a few = some, enough (countable plural). She CAN make it → a few." },
+  { u: 10, t: "mc", q: "There are very ___ people in the park today because it's raining.", o: ["little", "few", "much"], a: 1,
+    tip: "people = countable → (very) few = almost nobody." },
+  { u: 10, t: "mc", q: "Hurry up! We've got very ___ time.", o: ["few", "little", "many"], a: 1,
+    tip: "time = uncountable → (very) little." },
+  { u: 10, t: "mc", q: "She doesn't eat ___ sweets because she is on a diet.", o: ["much", "many", "a little"], a: 1,
+    tip: "sweets = countable plural → many." },
+  { u: 10, t: "mc", q: "Put ___ chocolate in the cake.", o: ["a little", "a few", "many"], a: 0,
+    tip: "chocolate = uncountable → a little." },
+  { u: 10, t: "mc", q: "He hasn't got ___ money.", o: ["many", "much", "a few"], a: 1,
+    tip: "money = uncountable → much." },
+  { u: 10, t: "mc", q: "Which noun is UNCOUNTABLE?", o: ["eggs", "water", "chairs"], a: 1,
+    tip: "You can't count water (1 water, 2 waters ✗). Uncountable: water, milk, money, bread, sugar, rice..." },
+  { u: 10, t: "mc", q: "Which noun is COUNTABLE?", o: ["rice", "money", "books"], a: 2,
+    tip: "1 book, 2 books ✓. Countable nouns have a plural." },
+  { u: 10, t: "mc", q: "What does \"a few\" mean?", o: ["a small number, but enough", "almost none", "a very big number"], a: 0,
+    tip: "a few / a little = some, enough. few / little = almost none." },
+  { u: 10, t: "mc", q: "Very ___ people can speak Welsh.", o: ["few", "little", "much"], a: 0,
+    tip: "people = countable → very few." },
+  { u: 10, t: "mc", q: "\"Have you got any bread?\" \"Yes, ___.\"", o: ["a few", "a little", "many"], a: 1,
+    tip: "bread = uncountable → a little." },
+  { u: 10, t: "mc", q: "\"Are there any car parks near here?\" \"Yes, ___.\"", o: ["a few", "a little", "much"], a: 0,
+    tip: "car parks = countable → a few." },
+  { u: 10, t: "mc", q: "Jack has got ___ comics. He buys one every week.", o: ["a lot of", "much", "a little"], a: 0,
+    tip: "Positive sentence → a lot of." },
+
+  { u: 10, t: "fill", q: "How ___ oranges are there in the bowl?", hint: "(much / many)", a: ["many"], traps: ["much"],
+    tip: "oranges = countable → How many." },
+  { u: 10, t: "fill", q: "How ___ milk do you drink every day?", hint: "(much / many)", a: ["much"], traps: ["many"],
+    tip: "milk = uncountable → How much." },
+  { u: 10, t: "fill", q: "There is very ___ milk in the fridge. Go and buy some, please.", hint: "(little / few)", a: ["little"], strict: true,
+    traps: ["few", "a little"],
+    tip: "milk = uncountable, almost none → very little." },
+  { u: 10, t: "fill", q: "I'm going shopping. I need to buy ___ things for tonight's party.", hint: "(a few / a little)", a: ["a few"], strict: true,
+    traps: ["few", "a little", "afew"],
+    tip: "things = countable → a few." },
+  { u: 10, t: "fill", q: "We need ___ milk and a few eggs to make the cake.", hint: "(a few / a little)", a: ["a little"], strict: true,
+    traps: ["little", "a few", "alittle"],
+    tip: "milk = uncountable → a little." },
+  { u: 10, t: "fill", q: "\"Do you want some biscuits?\" \"Yes, ___, please.\"", hint: "(a few / a little)", a: ["a few"], strict: true,
+    traps: ["a little", "few"],
+    tip: "biscuits = countable → a few." },
+
+  { u: 10, t: "spot", s: "There is very [few] soup in the bowl.", fix: "little",
+    tip: "soup = uncountable → little." },
+  { u: 10, t: "spot", s: "How [much] carrots are there in the fridge?", fix: "many",
+    tip: "carrots = countable → many." },
+  { u: 10, t: "spot", s: "Rita has got [many] money.", fix: "a lot of",
+    tip: "money = uncountable, positive sentence → a lot of." },
+  { u: 10, t: "spot", s: "There are a [little] people in the shop.", fix: "few",
+    tip: "people = countable → a few." },
+  { u: 10, t: "spot", s: "Mike hasn't got [much] friends.", fix: "many",
+    tip: "friends = countable → many." },
+  { u: 10, t: "spot", s: "I've got [little] games but a lot of books.", fix: "few",
+    tip: "games = countable → few." },
+  { u: 10, t: "spot", s: "How [many] sugar is there in the bowl?", fix: "much",
+    tip: "sugar = uncountable → much." },
+  { u: 10, t: "spot", s: "There is [few] snow on the mountains.", fix: "little",
+    tip: "snow = uncountable → little." },
+);
+// @@QUESTIONS@@
+</script>
+<script>
+"use strict";
+// ===== Settings (tweak these after he plays) =====
+const GAME_SIZE = 20;               // questions per game
+const TEST_SECONDS = 10 * 60;       // Test mode time limit
+const TIME_BONUS_PER_SECOND = 2;    // Test mode: points per second left at the end (× share of right answers)
+const FILL_SHARE = 0.2;             // share of fill-in questions per game
+const SPOT_SHARE = 0.15;            // share of find-the-mistake questions per game
+
+// ===== Storage (optional: the game works without it) =====
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private window etc. */ }
+  },
+};
+
+// ===== Helpers =====
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// ===== Pixel textures (16x16, drawn once and used as CSS backgrounds) =====
+function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function texture(seed, pick) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 16;
+  const g = c.getContext("2d");
+  const rnd = seeded(seed);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { g.fillStyle = pick(x, y, rnd); g.fillRect(x, y, 1, 1); }
+  return c.toDataURL();
+}
+const from = (palette, rnd) => palette[Math.floor(rnd() * palette.length)];
+const DIRT = ["#866043", "#79553a", "#966c4a", "#6b4a30", "#866043", "#b9855c"];
+const bevel = (x, y, light, dark, fill) => (x === 0 || y === 0 ? light : x === 15 || y === 15 ? dark : fill);
+const TEX = {
+  stone: texture(7, (x, y, r) => from(["#7f7f7f", "#757575", "#8a8a8a", "#7f7f7f", "#6b6b6b", "#969696"], r)),
+  dirt: texture(11, (x, y, r) => from(DIRT, r)),
+  grass: texture(13, (x, y, r) => (y < 3 + Math.floor(r() * 3) ? from(["#5d9c34", "#6aae3c", "#4f8a2b", "#78c046"], r) : from(DIRT, r))),
+  planks: texture(17, (x, y, r) => {
+    if (y % 4 === 3) return "#6b4e2a";                          // gaps between boards
+    if (x === (Math.floor(y / 4) * 7) % 16) return "#7a5a32";   // board ends
+    return from(["#a07a45", "#9a7442", "#ab8450", "#94703f"], r);
+  }),
+  gold: texture(19, (x, y, r) => bevel(x, y, "#fff27a", "#c48a00", from(["#fcdb05", "#f5c400", "#fde64f", "#eab400"], r))),
+  iron: texture(23, (x, y, r) => bevel(x, y, "#ffffff", "#9a9a9a", from(["#dcdcdc", "#d0d0d0", "#e6e6e6", "#c4c4c4"], r))),
+  diamond: texture(29, (x, y, r) => bevel(x, y, "#d2fff7", "#1a8f80", from(["#4aedd9", "#33d6c2", "#7ff5e6", "#2cc7b2"], r))),
+};
+function applyTextures() {
+  const s = document.createElement("style");
+  s.textContent = `
+    .btn { background-image: url(${TEX.stone}); background-blend-mode: overlay; }
+    .token { background-image: url(${TEX.planks}); background-blend-mode: overlay; }
+    #grassStrip { background: url(${TEX.grass}) 0 0 / 32px 32px repeat-x; }
+    #dirtStrip { background: url(${TEX.dirt}) 0 0 / 32px 32px; }`;
+  document.head.appendChild(s);
+}
+function makeClouds() {
+  for (let i = 0; i < 5; i++) {
+    const c = document.createElement("div");
+    c.className = "cloud";
+    const dur = 70 + Math.random() * 60;
+    c.style.width = 60 + Math.random() * 80 + "px";
+    c.style.top = 20 + Math.random() * 180 + "px";
+    c.style.animationDuration = dur + "s";
+    c.style.animationDelay = -Math.random() * dur + "s";
+    document.body.prepend(c);
+  }
+}
+
+// ===== Sound (synthesised, no files) =====
+const sound = {
+  muted: store.get("gm_muted", false),
+  ctx: null,
+  ensure() {
+    if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); }
+    if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+    return this.ctx;
+  },
+  tone(freq, dur, { type = "square", vol = 0.06, at = 0, slide = null } = {}) {
+    if (this.muted) return;
+    const ctx = this.ensure(); if (!ctx) return;
+    const t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  noise(dur, vol = 0.08) {
+    if (this.muted) return;
+    const ctx = this.ensure(); if (!ctx) return;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = buf; f.type = "lowpass"; f.frequency.value = 800; g.gain.value = vol;
+    src.connect(f).connect(g).connect(ctx.destination);
+    src.start();
+  },
+  click() { this.tone(660, 0.05, { vol: 0.03 }); },
+  correct() { this.noise(0.06, 0.05); this.tone(880, 0.08); this.tone(1318, 0.16, { at: 0.08 }); },
+  wrong() { this.tone(220, 0.25, { type: "sawtooth", slide: 90, vol: 0.07 }); this.noise(0.12); },
+  tick() { this.tone(1200, 0.03, { vol: 0.025, type: "triangle" }); },
+  levelUp() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, { at: i * 0.11, type: "triangle", vol: 0.08 })); },
+};
+
+// ===== Answer checking for fill-in questions =====
+const CONTRACTIONS = {
+  "isn't": "is not", "aren't": "are not", "don't": "do not", "doesn't": "does not", "i'm": "i am",
+  "you're": "you are", "we're": "we are", "they're": "they are", "he's": "he is", "she's": "she is",
+  "it's": "it is", "haven't": "have not", "hasn't": "has not",
+};
+function canon(s) {
+  return String(s).toLowerCase().replace(/[‘’`´]/g, "'").replace(/[.!?,"]/g, " ").trim()
+    .split(/\s+/).map((w) => CONTRACTIONS[w] || w).join(" ");
+}
+function lev(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+  }
+  return dp[a.length][b.length];
+}
+// One-letter slips are forgiven, except when the slip is the grammar point being tested.
+function checkFill(q, input) {
+  const given = canon(input);
+  if (!given) return { ok: false };
+  const answers = q.a.map(canon);
+  if (answers.includes(given)) return { ok: true };
+  if (q.strict || (q.traps || []).map(canon).includes(given)) return { ok: false };
+  for (const ans of answers) {
+    const A = ans.split(" "), G = given.split(" ");
+    if (A.length !== G.length) continue;                          // "any thing" vs "anything", "few" vs "a few"
+    const diff = A.map((_, i) => i).filter((i) => A[i] !== G[i]);
+    if (diff.length !== 1) continue;
+    const a = A[diff[0]], g = G[diff[0]];
+    if (a.length < 5) continue;                                    // short words (us, me, is, much) must be exact
+    if (lev(a, g) !== 1) continue;
+    if (a.replace(/s$/, "") === g.replace(/s$/, "")) continue;     // a missing or extra -s
+    if (a.endsWith("ing") && !a.endsWith("thing")) continue;       // verb -ing spelling
+    if (/(thing|body|one|where)$/.test(a) && /think$/.test(g)) continue;
+    return { ok: true, typo: true };
+  }
+  return { ok: false };
+}
+
+// ===== Find-the-mistake helpers =====
+function parseSpot(q) {
+  let wrong = -1;
+  const words = q.s.split(" ").map((tok, i) => {
+    const m = tok.match(/^(.*)\[(.+?)\](.*)$/);
+    if (!m) return { text: tok };
+    wrong = i;
+    return { text: m[1] + m[2] + m[3], pre: m[1], post: m[3] };
+  });
+  return { words, wrong };
+}
+function spotCorrected(q, html) {
+  const { words, wrong } = parseSpot(q);
+  return words.map((w, i) => {
+    if (i !== wrong) return html ? esc(w.text) : w.text;
+    if (!q.fix) return "";
+    return html ? `${esc(w.pre)}<b>${esc(q.fix)}</b>${esc(w.post)}` : w.pre + q.fix + w.post;
+  }).filter(Boolean).join(" ");
+}
+function rightAnswer(q, html) {
+  if (q.t === "spot") return spotCorrected(q, html);
+  const text = q.t === "mc" ? q.o[q.a] : q.a[0];
+  return html ? esc(text) : text;
+}
+function questionText(q) {
+  if (q.t === "spot") return "Find the mistake: " + parseSpot(q).words.map((w) => w.text).join(" ");
+  return q.q + (q.hint ? " " + q.hint : "");
+}
+
+// ===== Building a game: balanced across the chosen units =====
+function buildGame(units, n = GAME_SIZE) {
+  const pool = {};
+  for (const q of shuffle(Q)) {
+    if (!units.includes(q.u)) continue;
+    pool[q.u] = pool[q.u] || {};
+    (pool[q.u][q.t] = pool[q.u][q.t] || []).push(q);
+  }
+  const nFill = Math.round(n * FILL_SHARE), nSpot = Math.round(n * SPOT_SHARE);
+  const types = shuffle([...Array(nFill).fill("fill"), ...Array(nSpot).fill("spot"), ...Array(n - nFill - nSpot).fill("mc")]);
+  const unitSlots = shuffle(Array.from({ length: n }, (_, i) => units[i % units.length]));
+  const take = (u, t) => (pool[u] && pool[u][t] && pool[u][t].length ? pool[u][t].pop() : null);
+  const takeAny = (u, t) => take(u, t) || take(u, "mc") || take(u, "fill") || take(u, "spot");
+  const picked = [];
+  for (let i = 0; i < n; i++) {
+    let q = takeAny(unitSlots[i], types[i]);
+    for (const u of units) { if (q) break; q = takeAny(u, types[i]); }
+    if (q) picked.push(q);
+  }
+  return shuffle(picked);
+}
+
+// ===== Game state =====
+const S = {
+  mode: "practice", list: [], idx: 0, log: [], score: 0, streak: 0, bestStreak: 0,
+  timeLeft: 0, timer: null, locked: false, over: false, isRetry: false,
+};
+const mult = (streak) => (streak >= 5 ? 3 : streak >= 3 ? 2 : 1);
+const TYPE_LABEL = { mc: "CHOOSE THE ANSWER", fill: "FILL IN THE GAP", spot: "FIND THE MISTAKE" };
+const RANKS = [
+  { min: 90, name: "DIAMOND", tex: "diamond", msg: "Amazing! You're a grammar legend!" },
+  { min: 75, name: "GOLD", tex: "gold", msg: "Great job! Almost perfect!" },
+  { min: 60, name: "IRON", tex: "iron", msg: "Good work! A little more practice and you'll shine." },
+  { min: 40, name: "STONE", tex: "stone", msg: "Not bad! Read the tips below and try again." },
+  { min: 0, name: "WOOD", tex: "planks", msg: "Keep mining! Practice mode and the tips will help a lot." },
+];
+
+function show(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
+  window.scrollTo(0, 0);
+}
+
+// ===== Menu =====
+const selectedUnits = new Set(store.get("gm_units", Object.keys(UNITS).map(Number)));
+function renderMenu() {
+  $("unitChips").innerHTML = Object.entries(UNITS).map(([u, name]) =>
+    `<button type="button" class="unit-chip" data-unit="${u}" aria-pressed="${selectedUnits.has(+u)}"><b>${u}</b>${esc(name)}</button>`).join("");
+  const bp = store.get("gm_best_practice", 0), bt = store.get("gm_best_test", 0);
+  $("bests").innerHTML = `<span>⛏ Practice: <b>${bp.toLocaleString()}</b></span><span>⏱ Test: <b>${bt.toLocaleString()}</b></span>`;
+  $("nameInput").value = store.get("gm_name", "");
+  updateMuteBtn();
+}
+function updateMuteBtn() { $("muteBtn").textContent = sound.muted ? "🔇 Sound off" : "🔊 Sound on"; }
+function toggleMute() { sound.muted = !sound.muted; store.set("gm_muted", sound.muted); updateMuteBtn(); sound.click(); }
+
+$("unitChips").addEventListener("click", (e) => {
+  const chip = e.target.closest(".unit-chip");
+  if (!chip) return;
+  const u = +chip.dataset.unit;
+  if (selectedUnits.has(u)) {
+    if (selectedUnits.size === 1) { sound.wrong(); return; }   // keep at least one unit
+    selectedUnits.delete(u);
+  } else selectedUnits.add(u);
+  chip.setAttribute("aria-pressed", selectedUnits.has(u));
+  store.set("gm_units", [...selectedUnits]);
+  sound.click();
+});
+$("nameInput").addEventListener("input", (e) => store.set("gm_name", e.target.value.trim()));
+$("muteBtn").onclick = toggleMute;
+$("practiceBtn").onclick = () => startGame("practice");
+$("testBtn").onclick = () => startGame("test");
+
+// ===== Game flow =====
+function startGame(mode, retryList) {
+  sound.ensure();
+  sound.click();
+  clearInterval(S.timer);
+  Object.assign(S, {
+    mode, isRetry: !!retryList, idx: 0, log: [], score: 0, streak: 0, bestStreak: 0,
+    timer: null, locked: false, over: false,
+    list: retryList ? shuffle(retryList) : buildGame([...selectedUnits].sort((a, b) => a - b)),
+  });
+  const timed = mode === "test";
+  $("hudTimer").hidden = !timed;
+  $("hudScore").hidden = timed;     // Test mode keeps the score secret until the end
+  $("hudStreak").hidden = timed;
+  $("xpTicks").innerHTML = "<i></i>".repeat(Math.min(S.list.length, 20));
+  if (timed) {
+    S.timeLeft = TEST_SECONDS;
+    updateTimer();
+    S.timer = setInterval(tickTimer, 1000);
+  }
+  show("game");
+  renderQuestion();
+}
+function updateTimer() {
+  const m = Math.floor(S.timeLeft / 60), s = S.timeLeft % 60;
+  $("hudTimer").textContent = `⏱ ${m}:${String(s).padStart(2, "0")}`;
+  $("hudTimer").classList.toggle("low", S.timeLeft <= 60);
+}
+function tickTimer() {
+  S.timeLeft--;
+  updateTimer();
+  if (S.timeLeft > 0 && S.timeLeft <= 10) sound.tick();
+  if (S.timeLeft <= 0) timeUp();
+}
+function timeUp() {
+  for (let i = S.log.length; i < S.list.length; i++) S.log.push({ q: S.list[i], given: "(no time left)", ok: false, pts: 0 });
+  finish(true);
+}
+function updateHud() {
+  const n = S.list.length, correct = S.log.filter((l) => l.ok).length;
+  $("hudCount").textContent = `Q ${Math.min(S.idx + 1, n)}/${n}`;
+  $("xpFill").style.width = `${(S.log.length / n) * 100}%`;
+  $("xpLabel").textContent = S.mode === "test" ? `${S.log.length} OF ${n} ANSWERED` : `LEVEL ${correct}`;
+  $("hudScore").textContent = `💎 ${S.score.toLocaleString()}`;
+  $("hudStreak").textContent = `🔥 ${S.streak}${S.streak >= 3 ? ` x${mult(S.streak)}` : ""}`;
+}
+const gapHtml = (text) => esc(text).replace(/_{3}/g, '<span class="gap"></span>');
+
+function renderQuestion() {
+  const q = S.list[S.idx];
+  S.locked = false;
+  updateHud();
+  $("qUnit").textContent = `UNIT ${q.u} · ${UNITS[q.u].toUpperCase()}`;
+  $("qType").textContent = TYPE_LABEL[q.t];
+  $("feedback").className = "feedback";
+  $("feedback").innerHTML = "";
+  $("nextBtn").classList.add("invisible");
+  $("nextBtn").textContent = S.idx === S.list.length - 1 ? "Finish ▶" : "Next ▶";
+  const body = $("qBody");
+  if (q.t === "mc") {
+    $("qText").innerHTML = gapHtml(q.q);
+    const order = shuffle(q.o.map((_, i) => i));
+    body.innerHTML = `<div class="options">${order.map((oi, k) =>
+      `<button type="button" class="btn opt" data-i="${oi}"><span class="key">${k + 1}</span><span>${esc(q.o[oi])}</span></button>`).join("")}</div>`;
+    body.querySelectorAll(".opt").forEach((b) => (b.onclick = () => answerMc(+b.dataset.i, b)));
+    $("keyHint").textContent = `Press 1-${q.o.length} or click`;
+  } else if (q.t === "fill") {
+    $("qText").innerHTML = gapHtml(q.q);
+    body.innerHTML = (q.hint ? `<div class="q-hint">${esc(q.hint)}</div>` : "") +
+      `<div class="fill-row"><input class="answer-input" id="answerInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer">` +
+      `<button type="button" class="btn green" id="checkBtn">${S.mode === "test" ? "OK" : "Check"}</button></div>`;
+    $("checkBtn").onclick = answerFill;
+    $("answerInput").focus();
+    $("keyHint").textContent = "Type, then press Enter";
+  } else {
+    $("qText").textContent = "Which word is wrong?";
+    body.innerHTML = `<p class="spot-help">Click the block with the mistake.</p><div class="tokens">${parseSpot(q).words.map((w, i) =>
+      `<button type="button" class="token" data-i="${i}">${esc(w.text)}</button>`).join("")}</div>`;
+    body.querySelectorAll(".token").forEach((b) => (b.onclick = () => answerSpot(+b.dataset.i, b)));
+    $("keyHint").textContent = "Click a word block";
+  }
+}
+
+function record(q, given, ok, extra = {}) {
+  let pts = 0;
+  if (ok) {
+    S.streak++;
+    S.bestStreak = Math.max(S.bestStreak, S.streak);
+    pts = 100 * mult(S.streak);
+    S.score += pts;
+  } else S.streak = 0;
+  const entry = { q, given, ok, pts, ...extra };
+  S.log.push(entry);
+  return entry;
+}
+function answerMc(i, btn) {
+  if (S.locked) return;
+  S.locked = true;
+  const q = S.list[S.idx];
+  const entry = record(q, q.o[i], i === q.a);
+  const buttons = $("qBody").querySelectorAll(".opt");
+  buttons.forEach((b) => (b.disabled = true));
+  if (S.mode === "test") { btn.classList.add("picked"); sound.click(); return autoNext(); }
+  buttons.forEach((b) => { if (+b.dataset.i === q.a) b.classList.add("correct"); });
+  if (!entry.ok) btn.classList.add("wrong");
+  react(entry, btn);
+}
+function answerFill() {
+  if (S.locked) return;
+  const input = $("answerInput");
+  if (!input.value.trim()) { restartAnim(input, "shake"); input.focus(); return; }
+  S.locked = true;
+  input.disabled = true;
+  $("checkBtn").disabled = true;
+  const q = S.list[S.idx], res = checkFill(q, input.value);
+  const entry = record(q, input.value.trim(), res.ok, { typo: !!res.typo });
+  if (S.mode === "test") { sound.click(); return autoNext(); }
+  input.classList.add(res.ok ? "right" : "bad");
+  react(entry, $("checkBtn"));
+}
+function answerSpot(i, btn) {
+  if (S.locked) return;
+  S.locked = true;
+  const q = S.list[S.idx], { words, wrong } = parseSpot(q);
+  const entry = record(q, words[i].text, i === wrong);
+  const tokens = $("qBody").querySelectorAll(".token");
+  tokens.forEach((t) => (t.disabled = true));
+  if (S.mode === "test") { btn.classList.add("picked"); sound.click(); return autoNext(); }
+  tokens[wrong].classList.add("correct");
+  if (!entry.ok) btn.classList.add("wrong");
+  react(entry, btn);
+}
+function autoNext() { setTimeout(next, 350); }
+
+// Practice mode: instant feedback with effects
+function react(entry, anchor) {
+  const q = entry.q, fb = $("feedback");
+  const r = anchor.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  if (entry.ok) {
+    sound.correct();
+    burst(x, y, ["#4aedd9", "#fcdb05", "#5d9c34", "#ffffff"]);
+    floatText(`+${entry.pts}`, x, y - 20);
+    const streakMsg = S.streak >= 3 ? ` 🔥 ${S.streak} IN A ROW! x${mult(S.streak)}` : "";
+    fb.className = "feedback good show";
+    fb.innerHTML = `<span class="fb-title">✔ CORRECT! +${entry.pts}${streakMsg}</span>` +
+      (entry.typo ? `<span class="fb-answer">Small typo! It's spelled: <b>${esc(q.a[0])}</b></span>` : "") +
+      `<span class="fb-tip">${esc(q.tip)}</span>`;
+  } else {
+    sound.wrong();
+    burst(x, y, ["#7f7f7f", "#5a5a5a", "#c8352b"]);
+    restartAnim($("card"), "shake");
+    fb.className = "feedback bad show";
+    fb.innerHTML = `<span class="fb-title">✖ NOT QUITE</span>` +
+      `<span class="fb-answer">${q.t === "spot" ? "Correct sentence" : "Right answer"}: <b>${rightAnswer(q, true)}</b></span>` +
+      `<span class="fb-tip">${esc(q.tip)}</span>`;
+  }
+  updateHud();
+  const nb = $("nextBtn");
+  nb.classList.remove("invisible");
+  nb.focus({ preventScroll: true });
+  fb.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+function restartAnim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function burst(x, y, colors) {
+  for (let i = 0; i < 14; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = x + "px";
+    p.style.top = y + "px";
+    p.style.background = colors[i % colors.length];
+    document.body.appendChild(p);
+    const ang = Math.random() * Math.PI * 2, dist = 50 + Math.random() * 90;
+    p.animate(
+      [{ transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+       { transform: `translate(${Math.cos(ang) * dist}px, ${Math.sin(ang) * dist + 60}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }],
+      { duration: 650 + Math.random() * 300, easing: "cubic-bezier(.2,.7,.4,1)" }
+    ).onfinish = () => p.remove();
+  }
+}
+function floatText(text, x, y) {
+  const el = document.createElement("div");
+  el.className = "float-points";
+  el.textContent = text;
+  el.style.left = x - 30 + "px";
+  el.style.top = y + "px";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function next() {
+  if (S.over) return;
+  S.idx++;
+  if (S.idx >= S.list.length) return finish(false);
+  renderQuestion();
+}
+
+// ===== Results =====
+function finish(timeRanOut) {
+  S.over = true;
+  clearInterval(S.timer);
+  S.timer = null;
+  const n = S.list.length, correct = S.log.filter((l) => l.ok).length;
+  const pct = Math.round((correct / n) * 100);
+  // Scaled by the share of right answers, so rushing through with guesses earns nothing
+  const timeBonus = S.mode === "test" && !timeRanOut ? Math.round(S.timeLeft * TIME_BONUS_PER_SECOND * correct / n) : 0;
+  const total = S.score + timeBonus;
+  const rank = RANKS.find((r) => pct >= r.min);
+  const name = store.get("gm_name", "");
+  $("rankBlock").style.backgroundImage = `url(${TEX[rank.tex]})`;
+  $("rankName").textContent = `${rank.name} RANK`;
+  $("resultLine").textContent = `${name ? name + ", you" : "You"} got ${correct} out of ${n} right (${pct}%). ${rank.msg}`;
+  $("bigScore").textContent = `💎 ${total.toLocaleString()}`;
+  let best = "";
+  if (!S.isRetry) {
+    const key = `gm_best_${S.mode}`;
+    if (total > store.get(key, 0)) { store.set(key, total); best = "★ NEW BEST SCORE! ★"; }
+  }
+  $("newBest").textContent = best;
+  const rows = [
+    ["Correct answers", `${correct} / ${n}`],
+    ["Points (with streak bonus)", S.score.toLocaleString()],
+    ["Best streak", `🔥 ${S.bestStreak}`],
+  ];
+  if (S.mode === "test") {
+    rows.push(timeRanOut ? ["Time ran out!", "+0"]
+      : [`Time bonus (${S.timeLeft}s left × ${TIME_BONUS_PER_SECOND} × ${pct}% right)`, `+${timeBonus.toLocaleString()}`]);
+  }
+  $("breakdown").innerHTML = rows.map(([k, v]) => `<div><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("") +
+    `<div class="total"><span>TOTAL</span><span>${total.toLocaleString()}</span></div>`;
+  renderReview();
+  show("results");
+  sound.levelUp();
+}
+function renderReview() {
+  const wrong = S.log.filter((l) => !l.ok), typos = S.log.filter((l) => l.ok && l.typo);
+  $("retryBtn").hidden = wrong.length === 0;
+  let html = wrong.length
+    ? `<div class="review-title">⛏ LEARN FROM YOUR MISTAKES (${wrong.length})</div>` + wrong.map((l) =>
+      `<div class="review-item"><div class="ri-q">${esc(questionText(l.q))}</div>` +
+      `<div class="ri-yours">Your answer: ${esc(l.given)}</div>` +
+      `<div class="ri-right">${l.q.t === "spot" ? "Correct sentence" : "Right answer"}: <b>${rightAnswer(l.q, true)}</b></div>` +
+      `<div class="ri-tip">💡 ${esc(l.q.tip)}</div></div>`).join("")
+    : `<div class="review-title">💎 NO MISTAKES! PERFECT MINING!</div>`;
+  if (typos.length) {
+    html += `<div class="review-title">✏ WATCH YOUR SPELLING</div>` + typos.map((l) =>
+      `<div class="review-item">You wrote <span class="ri-yours">${esc(l.given)}</span>, it's spelled <b class="ri-right">${esc(l.q.a[0])}</b>.</div>`).join("");
+  }
+  $("review").innerHTML = html;
+}
+$("againBtn").onclick = () => startGame(S.mode);
+$("retryBtn").onclick = () => startGame("practice", S.log.filter((l) => !l.ok).map((l) => l.q));
+$("menuBtn").onclick = () => { sound.click(); renderMenu(); show("menu"); };
+$("nextBtn").onclick = () => { sound.click(); next(); };
+$("quitBtn").onclick = () => {
+  if (!confirm("Quit this game? Your progress will be lost.")) return;
+  S.over = true;
+  clearInterval(S.timer);
+  renderMenu();
+  show("menu");
+};
+
+// ===== Keyboard: 1-4 to answer, Enter to check / go on, M to mute =====
+document.addEventListener("keydown", (e) => {
+  const typing = e.target.tagName === "INPUT";
+  if ((e.key === "m" || e.key === "M") && !typing) { toggleMute(); return; }
+  if (!$("game").classList.contains("active")) return;
+  const q = S.list[S.idx];
+  if (e.key === "Enter") {
+    if (!$("nextBtn").classList.contains("invisible")) { e.preventDefault(); sound.click(); next(); }
+    else if (q && q.t === "fill" && !S.locked) { e.preventDefault(); answerFill(); }
+    return;
+  }
+  if (q && q.t === "mc" && !S.locked && /^[1-9]$/.test(e.key)) {
+    const btn = $("qBody").querySelectorAll(".opt")[+e.key - 1];
+    if (btn) btn.click();
+  }
+});
+
+applyTextures();
+makeClouds();
+renderMenu();
+</script>
+</body>
+</html>
