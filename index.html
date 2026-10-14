@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grammar Mine</title>
-<meta name="description" content="A block-style English grammar revision game for Units 6-10.">
+<meta name="description" content="A block-style English grammar revision game for Units 1-10.">
 <meta name="keywords" content="grammar, English, revision, game">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,15 +32,17 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   font-family: var(--font-body);
   font-size: 22px;
   color: var(--ink);
-  background: linear-gradient(var(--sky-top), var(--sky-bottom)) fixed;
+  background: var(--sky-bottom);
   min-height: 100vh;
   padding: 16px 16px 140px;
   overflow-x: hidden;
 }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
 #ground {
   position: fixed; left: 0; right: 0; bottom: 0; height: 112px;
   background: #866043; image-rendering: pixelated; z-index: 0;
@@ -75,7 +77,13 @@ body {
   box-shadow: inset 3px 3px 0 rgba(255,255,255,.4), inset -3px -4px 0 rgba(0,0,0,.45);
   padding: 12px 22px; cursor: pointer; user-select: none;
 }
-.btn:hover:not(:disabled), .btn:focus-visible { outline: 3px solid #fff; outline-offset: -6px; filter: brightness(1.12) saturate(1.2); }
+.btn:focus-visible { outline: 3px solid #fff; outline-offset: -6px; filter: brightness(1.12) saturate(1.2); }
+@media (hover: hover) {
+  .btn:hover:not(:disabled) { outline: 3px solid #fff; outline-offset: -6px; filter: brightness(1.12) saturate(1.2); }
+  .token:hover:not(:disabled) { transform: translateY(-4px); }
+}
+/* Touch: no double-tap zoom or grey tap flash, no text selection on long press */
+.btn, .token, .unit-chip { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 .btn:active:not(:disabled) { transform: translateY(2px); }
 .btn:disabled { opacity: .55; cursor: default; }
 .btn.green { background-color: var(--green); }
@@ -87,7 +95,7 @@ body {
 .answer-input.right { border-color: var(--green); }
 .answer-input.bad { border-color: var(--red); }
 .answer-input:disabled { opacity: .85; }
-.btn.small { font-size: 16px; padding: 8px 14px; }
+.btn.small { font-size: 16px; padding: 8px 14px; min-height: 44px; }
 
 /* ---------- Menu ---------- */
 .logo {
@@ -99,7 +107,8 @@ body {
 .logo .accent { color: var(--diamond); }
 .tagline {
   text-align: center; font-family: var(--font-title); font-size: 13px; color: var(--gold);
-  text-shadow: 2px 2px 0 #3f3f00; margin-bottom: 22px; animation: pulse 1.2s ease-in-out infinite;
+  text-shadow: 2px 2px 0 #3f3f00; margin: 0 auto 22px; animation: pulse 1.2s ease-in-out infinite;
+  width: fit-content; max-width: 100%;   /* only the text pulses, so it never pokes past the screen edge */
 }
 @keyframes pulse { 50% { transform: scale(1.06); } }
 .menu-grid { display: grid; gap: 18px; }
@@ -121,6 +130,8 @@ body {
 }
 .unit-chip[aria-pressed="true"] { background: var(--green); color: #fff; text-shadow: 1px 1px 0 #1d4d0b; }
 .unit-chip b { font-family: var(--font-title); font-size: 11px; margin-right: 6px; }
+.unit-chip { min-height: 44px; }
+.unit-presets { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .bests { display: flex; gap: 22px; flex-wrap: wrap; font-size: 19px; }
 .bests span b { font-family: var(--font-title); font-size: 13px; }
 .top-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 4px; }
@@ -143,7 +154,7 @@ body {
 
 .card { position: relative; }
 .q-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-.tag { font-family: var(--font-title); font-size: 10px; padding: 7px 9px; background: #5a5a5a; color: #fff; border: 2px solid #000; }
+.tag { font-family: var(--font-title); font-size: 10px; line-height: 1.6; padding: 7px 9px; background: #5a5a5a; color: #fff; border: 2px solid #000; }
 .tag.type { background: #3c5fa8; }
 .q-text { font-size: 30px; line-height: 1.35; margin: 6px 0 22px; font-weight: 600; }
 .q-text .gap { display: inline-block; min-width: 90px; border-bottom: 4px dashed #555; margin: 0 4px; }
@@ -168,11 +179,10 @@ body {
   font-family: var(--font-body); font-size: 26px; font-weight: 600; color: #fff;
   text-shadow: 2px 2px 0 #3d2a12; cursor: pointer;
   background-color: #a07a45; background-size: 64px 64px; image-rendering: pixelated;
-  border: 3px solid #000; padding: 10px 14px;
+  border: 3px solid #000; padding: 10px 14px; min-width: 48px;
   box-shadow: inset 3px 3px 0 rgba(255,255,255,.3), inset -3px -4px 0 rgba(0,0,0,.4);
   transition: transform .1s;
 }
-.token:hover:not(:disabled) { transform: translateY(-4px); }
 .token:disabled { cursor: default; }
 .token.correct { background-color: var(--green); }
 .token.wrong { background-color: var(--red); animation: shake .35s; }
@@ -232,12 +242,40 @@ body {
 .review-item { font-size: 18px; }
 .review-item .ri-tip { font-size: 16px; }
 
+/* Tablets and phones: no keyboard shortcuts to show */
+@media (pointer: coarse) {
+  .key-hint { visibility: hidden; }
+}
+
 @media (max-width: 640px) {
-  body { font-size: 19px; }
+  body { font-size: 19px; padding-bottom: 96px; }
+  #ground { height: 72px; }
+  #ground .grass { height: 20px; }
+  #ground .dirt { height: 52px; }
+  .logo { margin-top: 8px; }
+  .tagline { font-size: 10px; }
   .modes { grid-template-columns: 1fr; }
-  .q-text { font-size: 24px; }
-  .opt, .token { font-size: 21px; }
-  .panel { padding: 18px 16px; }
+  .mode-btn .mode-title { font-size: 14px; }
+  .panel { padding: 18px 14px; }
+  .hud { gap: 8px; }
+  .hud-box { font-size: 11px; padding: 8px 9px; }
+  .xp-wrap { order: 10; flex-basis: 100%; }
+  .q-text { font-size: 22px; margin-bottom: 16px; }
+  .opt, .token { font-size: 19px; }
+  .opt { padding: 12px 14px; gap: 12px; }
+  .token { padding: 8px 11px; }
+  .tokens { gap: 8px; }
+  .answer-input { font-size: 20px; }
+  .feedback { font-size: 18px; padding: 12px 14px; }
+  .feedback .fb-title { font-size: 13px; }
+  .card-actions .key-hint { display: none; }
+  .rank-block { width: 72px; height: 72px; }
+  .rank-name { font-size: 17px; }
+  .big-score { font-size: 24px; }
+  .breakdown { font-size: 17px; }
+  .breakdown div { gap: 10px; }
+  .result-actions .btn { flex: 1 1 100%; }
+  .review-title { font-size: 12px; line-height: 1.5; }
 }
 </style>
 </head>
@@ -248,14 +286,19 @@ body {
 <section class="screen active" id="menu">
   <div class="top-bar"><button class="btn small" id="muteBtn" type="button" aria-label="Toggle sound">🔊 Sound on</button></div>
   <h1 class="logo">GRAMMAR<br><span class="accent">MINE</span></h1>
-  <div class="tagline">Units 6-10 revision!</div>
+  <div class="tagline">Units 1-10 revision!</div>
   <div class="panel menu-grid">
     <div>
       <p class="field-label">PLAYER NAME</p>
-      <input class="name-input" id="nameInput" maxlength="16" placeholder="Type your name" autocomplete="off">
+      <input class="name-input" id="nameInput" maxlength="16" placeholder="Type your name" autocomplete="off" autocorrect="off" autocapitalize="words" enterkeyhint="done">
     </div>
     <div>
-      <p class="field-label">UNITS (click to switch on/off)</p>
+      <p class="field-label" id="unitsLabel">UNITS (click to switch on/off)</p>
+      <div class="unit-presets">
+        <button class="btn small" type="button" data-preset="1,2,3,4,5,6,7,8,9,10">All units</button>
+        <button class="btn small" type="button" data-preset="1,2,3,4,5">Units 1-5</button>
+        <button class="btn small" type="button" data-preset="6,7,8,9,10">Units 6-10</button>
+      </div>
       <div class="units" id="unitChips"></div>
     </div>
     <div>
@@ -332,6 +375,11 @@ body {
 //   spot : s: sentence with the wrong word in [brackets], fix: the right word(s)
 // Every question has u (unit) and tip (shown after answering).
 const UNITS = {
+  1: "Plurals & Uncountables",
+  2: "Subject Pronouns & To Be",
+  3: "A/An/The & This/That",
+  4: "Have got & Can",
+  5: "Possessives",
   6: "Present Continuous",
   7: "Pronouns & Imperative",
   8: "There is/are & Some/Any/No",
@@ -339,6 +387,424 @@ const UNITS = {
   10: "Much, Many, A few, A little",
 };
 const Q = [];
+
+// ---------- Unit 1: Plural Nouns, Countable/Uncountable ----------
+Q.push(
+  { u: 1, t: "mc", q: "Plural of \"box\":", o: ["boxs", "boxes", "boxies"], a: 1,
+    tip: "Nouns ending in -s, -ss, -sh, -ch, -x, -o → add -es: boxes, glasses, dishes, watches." },
+  { u: 1, t: "mc", q: "Plural of \"baby\":", o: ["babys", "babies", "babyes"], a: 1,
+    tip: "Consonant + y → -ies: baby → babies, city → cities." },
+  { u: 1, t: "mc", q: "Plural of \"boy\":", o: ["boies", "boys", "boyes"], a: 1,
+    tip: "Vowel + y → just add -s: boy → boys, day → days." },
+  { u: 1, t: "mc", q: "Plural of \"knife\":", o: ["knifes", "knives", "knivs"], a: 1,
+    tip: "-f / -fe → -ves: knife → knives, leaf → leaves, wolf → wolves." },
+  { u: 1, t: "mc", q: "Plural of \"leaf\":", o: ["leafs", "leaves", "leafes"], a: 1,
+    tip: "-f → -ves: leaf → leaves." },
+  { u: 1, t: "mc", q: "Plural of \"child\":", o: ["childs", "children", "childrens"], a: 1,
+    tip: "Irregular plural: one child, two children." },
+  { u: 1, t: "mc", q: "Plural of \"mouse\":", o: ["mouses", "mice", "mices"], a: 1,
+    tip: "Irregular plural: one mouse, two mice." },
+  { u: 1, t: "mc", q: "Plural of \"tooth\":", o: ["tooths", "teeth", "teeths"], a: 1,
+    tip: "Irregular plural: tooth → teeth, foot → feet." },
+  { u: 1, t: "mc", q: "Plural of \"sheep\":", o: ["sheeps", "sheep", "sheepes"], a: 1,
+    tip: "Some nouns stay the same: one sheep, two sheep. Also fish and deer." },
+  { u: 1, t: "mc", q: "Plural of \"woman\":", o: ["womans", "women", "womens"], a: 1,
+    tip: "Irregular plural: man → men, woman → women." },
+  { u: 1, t: "mc", q: "Plural of \"potato\":", o: ["potatos", "potatoes", "potatoies"], a: 1,
+    tip: "-o → -es: potatoes, tomatoes. (But: photos, pianos, radios.)" },
+  { u: 1, t: "mc", q: "Plural of \"photo\":", o: ["photoes", "photos", "photies"], a: 1,
+    tip: "Some -o words just add -s: photos, pianos, radios, kilos." },
+  { u: 1, t: "mc", q: "Plural of \"person\":", o: ["peoples", "people", "persones"], a: 1,
+    tip: "Irregular plural: one person, two people." },
+  { u: 1, t: "mc", q: "Plural of \"foot\":", o: ["foots", "feet", "feets"], a: 1,
+    tip: "Irregular plural: foot → feet." },
+  { u: 1, t: "mc", q: "Plural of \"policeman\":", o: ["policemans", "policemen", "policemens"], a: 1,
+    tip: "man → men, so policeman → policemen." },
+  { u: 1, t: "mc", q: "Make it plural: this watch", o: ["these watches", "this watches", "these watchs"], a: 0,
+    tip: "this → these, that → those. And -ch → -es: watches." },
+  { u: 1, t: "mc", q: "Make it plural: that monkey", o: ["those monkeys", "that monkeys", "those monkies"], a: 0,
+    tip: "that → those. Vowel + y → -s: monkeys." },
+  { u: 1, t: "mc", q: "Which noun is UNCOUNTABLE?", o: ["banana", "bread", "egg"], a: 1,
+    tip: "You can't count bread (one bread, two breads ✗). Say: a loaf / a slice of bread." },
+  { u: 1, t: "mc", q: "Some jam → two ___ of jam", o: ["jars", "slices", "loaves"], a: 0,
+    tip: "a jar of jam, a cup of tea, a glass of milk, a can of Coke, a slice of cheese, a loaf of bread." },
+  { u: 1, t: "mc", q: "Some bread → two ___ of bread", o: ["cups", "loaves", "jars"], a: 1,
+    tip: "a loaf of bread → two loaves of bread (or two slices of bread)." },
+  { u: 1, t: "mc", q: "Some tea → two ___ of tea", o: ["cups", "slices", "loaves"], a: 0,
+    tip: "a cup of tea → two cups of tea." },
+  { u: 1, t: "mc", q: "Some Coke → two ___ of Coke", o: ["slices", "loaves", "cans"], a: 2,
+    tip: "a can (or a bottle) of Coke → two cans of Coke." },
+  { u: 1, t: "mc", q: "Some milk → two ___ of milk", o: ["slices", "glasses", "loaves"], a: 1,
+    tip: "a glass (or a carton) of milk → two glasses of milk." },
+  { u: 1, t: "mc", q: "They are ___ girls.", o: ["clevers", "clever", "clevres"], a: 1,
+    tip: "Adjectives NEVER take -s: clever girls, big houses." },
+
+  { u: 1, t: "fill", q: "one wolf → two ___", a: ["wolves"], strict: true, traps: ["wolfs", "wolfes"],
+    tip: "-f → -ves: wolf → wolves." },
+  { u: 1, t: "fill", q: "one city → two ___", a: ["cities"], strict: true, traps: ["citys", "cityes"],
+    tip: "Consonant + y → -ies: cities." },
+  { u: 1, t: "fill", q: "one bus → two ___", a: ["buses"], strict: true, traps: ["buss", "bus"],
+    tip: "-s → add -es: buses." },
+  { u: 1, t: "fill", q: "one tomato → three ___", a: ["tomatoes"], strict: true, traps: ["tomatos"],
+    tip: "-o → -es: tomatoes, potatoes." },
+  { u: 1, t: "fill", q: "one dish → four ___", a: ["dishes"], strict: true, traps: ["dishs"],
+    tip: "-sh → add -es: dishes." },
+  { u: 1, t: "fill", q: "one child → three ___", a: ["children"], strict: true, traps: ["childs", "childrens"],
+    tip: "Irregular: children (never \"childrens\")." },
+  { u: 1, t: "fill", q: "one foot → two ___", a: ["feet"], strict: true, traps: ["foots", "feets"],
+    tip: "Irregular: foot → feet." },
+
+  { u: 1, t: "spot", s: "There are three [mouse] in the kitchen.", fix: "mice",
+    tip: "three = plural → mice." },
+  { u: 1, t: "spot", s: "Those [childs] are my cousins.", fix: "children",
+    tip: "Irregular plural: children." },
+  { u: 1, t: "spot", s: "There are [wolfs] in the forest.", fix: "wolves",
+    tip: "-f → -ves: wolves." },
+  { u: 1, t: "spot", s: "The [babys] are sleeping.", fix: "babies",
+    tip: "Consonant + y → -ies: babies." },
+  { u: 1, t: "spot", s: "They are [clevers] girls.", fix: "clever",
+    tip: "Adjectives never take -s." },
+  { u: 1, t: "spot", s: "My [tooths] are white.", fix: "teeth",
+    tip: "Irregular plural: teeth." },
+  { u: 1, t: "spot", s: "We need some [tomatos] for the salad.", fix: "tomatoes",
+    tip: "-o → -es: tomatoes." },
+);
+
+// ---------- Unit 2: Subject Pronouns / The Verb "To Be" ----------
+Q.push(
+  { u: 2, t: "mc", q: "Sarah and I ___ sisters.", o: ["am", "is", "are"], a: 2,
+    tip: "Sarah and I = we → are." },
+  { u: 2, t: "mc", q: "Ben and Tim ___ at school.", o: ["is", "are", "am"], a: 1,
+    tip: "Ben and Tim = they → are." },
+  { u: 2, t: "mc", q: "England ___ a country.", o: ["is", "are", "am"], a: 0,
+    tip: "England = it → is." },
+  { u: 2, t: "mc", q: "I ___ ten years old.", o: ["is", "am", "are"], a: 1,
+    tip: "I am, you are, he/she/it is, we/you/they are." },
+  { u: 2, t: "mc", q: "\"Is she old?\" \"No, she ___. She is young.\"", o: ["isn't", "aren't", "is"], a: 0,
+    tip: "Is she...? → Yes, she is. / No, she isn't." },
+  { u: 2, t: "mc", q: "\"Are they at home now?\" \"No, they ___. They are at work.\"", o: ["isn't", "aren't", "not"], a: 1,
+    tip: "Are they...? → Yes, they are. / No, they aren't." },
+  { u: 2, t: "mc", q: "\"Are you a doctor?\" \"No, I'm ___.\"", o: ["not", "isn't", "aren't"], a: 0,
+    tip: "I → I'm not. (Never \"I amn't\" or \"I'm isn't\".)" },
+  { u: 2, t: "mc", q: "\"Are you a teacher?\" \"Yes, I ___.\"", o: ["am", "is", "'m"], a: 0,
+    tip: "Yes short answers never use short forms: Yes, I am. (Never \"Yes, I'm.\")" },
+  { u: 2, t: "mc", q: "\"Is it a trumpet?\" \"No, it ___. It's a saxophone.\"", o: ["isn't", "aren't", "not"], a: 0,
+    tip: "Is it...? → Yes, it is. / No, it isn't." },
+  { u: 2, t: "mc", q: "My mum is a nurse. ___ works in a hospital.", o: ["He", "She", "It"], a: 1,
+    tip: "A woman or girl → she." },
+  { u: 2, t: "mc", q: "Look at the dog! ___ is very big.", o: ["He", "It", "They"], a: 1,
+    tip: "Animals and things → it." },
+  { u: 2, t: "mc", q: "Tom and Kate are my friends. ___ are from Italy.", o: ["We", "They", "He"], a: 1,
+    tip: "Tom and Kate = they." },
+  { u: 2, t: "mc", q: "My brother and I love football. ___ play every day.", o: ["They", "We", "You"], a: 1,
+    tip: "My brother and I = we." },
+  { u: 2, t: "mc", q: "This is Mr Smith. ___ is my teacher.", o: ["He", "She", "It"], a: 0,
+    tip: "A man or boy → he." },
+  { u: 2, t: "mc", q: "Where ___ Paul from?", o: ["is", "are", "am"], a: 0,
+    tip: "Paul = he → is." },
+  { u: 2, t: "mc", q: "___ you from Greece?", o: ["Is", "Are", "Am"], a: 1,
+    tip: "Questions: Am I...? Is he/she/it...? Are you/we/they...?" },
+  { u: 2, t: "mc", q: "Which sentence is correct?", o: ["Tim are from America.", "Tim is from America.", "Tim am from America."], a: 1,
+    tip: "Tim = he → is." },
+  { u: 2, t: "mc", q: "Short form of \"They are\":", o: ["They're", "Their", "There"], a: 0,
+    tip: "They are → They're. (their = belongs to them, there = in that place)" },
+  { u: 2, t: "mc", q: "Short form of \"She is not\":", o: ["She isn't", "She aren't", "She not"], a: 0,
+    tip: "is not → isn't, are not → aren't." },
+  { u: 2, t: "mc", q: "\"How old ___ you?\" \"I am twelve.\"", o: ["is", "are", "am"], a: 1,
+    tip: "you → are." },
+  { u: 2, t: "mc", q: "\"Where's my hat?\" \"___ is on the chair.\"", o: ["He", "It", "She"], a: 1,
+    tip: "a hat = a thing → it." },
+  { u: 2, t: "mc", q: "\"Where are your cats?\" \"___ are in the garden.\"", o: ["It", "They", "We"], a: 1,
+    tip: "cats = more than one → they." },
+  { u: 2, t: "mc", q: "\"Where are you from, Tim and Rick?\" \"___ are from the USA.\"", o: ["They", "We", "You"], a: 1,
+    tip: "Tim and Rick talk about themselves → we." },
+
+  { u: 2, t: "fill", q: "Horses and cows ___ animals.", hint: "(am / is / are)", a: ["are"], traps: ["is", "am"],
+    tip: "Horses and cows = they → are." },
+  { u: 2, t: "fill", q: "Nora ___ a secretary at Star TV.", hint: "(am / is / are)", a: ["is"], traps: ["are", "am"],
+    tip: "Nora = she → is." },
+  { u: 2, t: "fill", q: "I ___ not a teacher. I'm a student.", hint: "(am / is / are)", a: ["am"], traps: ["is", "are"],
+    tip: "I → am." },
+  { u: 2, t: "fill", q: "Chin and Mei ___ from China.", hint: "(am / is / are)", a: ["are"], traps: ["is", "am"],
+    tip: "Chin and Mei = they → are." },
+  { u: 2, t: "fill", q: "\"Is Jack at home?\" \"No, ___ is at school.\"", hint: "(pronoun)", a: ["he"], traps: ["she", "it", "him"],
+    tip: "Jack = a boy → he." },
+  { u: 2, t: "fill", q: "Sally is my friend. ___ is very funny.", hint: "(pronoun)", a: ["She"], traps: ["he", "her", "it"],
+    tip: "Sally = a girl → she." },
+  { u: 2, t: "fill", q: "\"Are you hungry?\" \"Yes, I ___.\"", a: ["am"], traps: ["'m", "is", "are"],
+    tip: "Yes, I am. (Never \"Yes, I'm.\")" },
+
+  { u: 2, t: "spot", s: "Sarah and I [am] sisters.", fix: "are",
+    tip: "Sarah and I = we → are." },
+  { u: 2, t: "spot", s: "Ben and Tim [is] at school.", fix: "are",
+    tip: "Ben and Tim = they → are." },
+  { u: 2, t: "spot", s: "Horses and cows [is] animals.", fix: "are",
+    tip: "Horses and cows = they → are." },
+  { u: 2, t: "spot", s: "England [are] a country.", fix: "is",
+    tip: "England = it → is." },
+  { u: 2, t: "spot", s: "Tim [are] from America.", fix: "is",
+    tip: "Tim = he → is." },
+  { u: 2, t: "spot", s: "\"Are you a doctor?\" \"Yes, [I'm].\"", fix: "I am",
+    tip: "Short answers: Yes, I am. (Never \"Yes, I'm.\")" },
+  { u: 2, t: "spot", s: "My sister is ten. [He] is very clever.", fix: "She",
+    tip: "My sister = a girl → she." },
+);
+
+// ---------- Unit 3: Articles (a/an/the), This/That/These/Those ----------
+Q.push(
+  { u: 3, t: "mc", q: "___ elephant", o: ["a", "an", "some"], a: 1,
+    tip: "an + a vowel SOUND (a, e, i, o, u): an elephant, an owl." },
+  { u: 3, t: "mc", q: "___ umbrella", o: ["a", "an", "some"], a: 1,
+    tip: "umbrella starts with a vowel sound → an umbrella." },
+  { u: 3, t: "mc", q: "___ university", o: ["a", "an", "some"], a: 0,
+    tip: "university starts with a \"you\" sound (a consonant sound) → a university." },
+  { u: 3, t: "mc", q: "___ hour", o: ["a", "an", "some"], a: 1,
+    tip: "The h in hour is silent, so it starts with a vowel sound → an hour." },
+  { u: 3, t: "mc", q: "___ house", o: ["a", "an", "some"], a: 0,
+    tip: "We hear the h in house → a house." },
+  { u: 3, t: "mc", q: "___ old house", o: ["a", "an", "some"], a: 1,
+    tip: "a/an goes with the NEXT word: an old house (but a big house)." },
+  { u: 3, t: "mc", q: "It's ___ expensive car.", o: ["a", "an", "the"], a: 1,
+    tip: "expensive starts with a vowel sound → an expensive car." },
+  { u: 3, t: "mc", q: "There's ___ sugar in the bowl.", o: ["a", "an", "some"], a: 2,
+    tip: "Uncountable nouns (sugar, milk, bread, money) take some, never a/an." },
+  { u: 3, t: "mc", q: "I am from ___ England.", o: ["a", "the", "(nothing)"], a: 2,
+    tip: "No the with countries: England, Italy, Spain. (But the USA, the UK.)" },
+  { u: 3, t: "mc", q: "New York is in ___ USA.", o: ["a", "the", "(nothing)"], a: 1,
+    tip: "the USA, the UK (they are groups of states)." },
+  { u: 3, t: "mc", q: "___ Nile is a very long river.", o: ["A", "The", "(nothing)"], a: 1,
+    tip: "the + rivers, seas, oceans, deserts, mountains: the Nile, the Atlantic, the Sahara, the Alps." },
+  { u: 3, t: "mc", q: "Peter plays ___ guitar.", o: ["a", "the", "(nothing)"], a: 1,
+    tip: "the + musical instruments: the guitar, the piano, the violin." },
+  { u: 3, t: "mc", q: "Peter plays ___ tennis.", o: ["a", "the", "(nothing)"], a: 2,
+    tip: "No the with sports and games: tennis, football, basketball." },
+  { u: 3, t: "mc", q: "We have ___ lunch at one o'clock.", o: ["a", "the", "(nothing)"], a: 2,
+    tip: "No the with meals: breakfast, lunch, dinner." },
+  { u: 3, t: "mc", q: "He goes to ___ school every day.", o: ["a", "the", "(nothing)"], a: 2,
+    tip: "No the with school, bed, hospital, home when we mean their main use: go to school, go to bed." },
+  { u: 3, t: "mc", q: "___ sun is very hot today.", o: ["A", "The", "(nothing)"], a: 1,
+    tip: "the + things there is only one of: the sun, the earth, the sky, the moon." },
+  { u: 3, t: "mc", q: "I go to school in ___ morning.", o: ["a", "the", "(nothing)"], a: 1,
+    tip: "in the morning, in the afternoon, in the evening." },
+  { u: 3, t: "mc", q: "___ lions are wild animals.", o: ["The", "A", "(nothing)"], a: 2,
+    tip: "Talking about ALL lions in general → no the: Lions are wild animals." },
+  { u: 3, t: "mc", q: "___ Smiths live next door.", o: ["The", "A", "(nothing)"], a: 0,
+    tip: "the + families and nationalities: the Smiths, the Browns, the Italians, the Chinese." },
+  { u: 3, t: "mc", q: "This is ___ Jane.", o: ["the", "a", "(nothing)"], a: 2,
+    tip: "No the with names of people: Jane, Mark." },
+  { u: 3, t: "mc", q: "___ are my shoes. (I'm holding them)", o: ["These", "Those", "This"], a: 0,
+    tip: "Near me: this (one) / these (many). Far away: that (one) / those (many)." },
+  { u: 3, t: "mc", q: "Look over there! ___ are palm trees.", o: ["These", "Those", "That"], a: 1,
+    tip: "Far away + many → those." },
+  { u: 3, t: "mc", q: "\"What's that?\" \"___ a scorpion.\"", o: ["It's", "This is", "That's"], a: 0,
+    tip: "What's this/that? → It's... (not This is / That is)." },
+  { u: 3, t: "mc", q: "\"What are those?\" \"___ camels.\"", o: ["They're", "Those are", "It's"], a: 0,
+    tip: "What are these/those? → They're..." },
+  { u: 3, t: "mc", q: "\"Is this a camera?\" \"Yes, ___.\"", o: ["it is", "this is", "that is"], a: 0,
+    tip: "Short answers: Yes, it is. / No, it isn't. (Never \"Yes, this is.\")" },
+  { u: 3, t: "mc", q: "\"Are these sunglasses?\" \"No, ___.\"", o: ["they aren't", "these aren't", "it isn't"], a: 0,
+    tip: "Are these/those...? → Yes, they are. / No, they aren't." },
+  { u: 3, t: "mc", q: "___ ring is very expensive.", o: ["Those", "That", "These"], a: 1,
+    tip: "ring = one thing → this or that." },
+
+  { u: 3, t: "fill", q: "Sally is ___ actress.", hint: "(a / an / the)", a: ["an"], traps: ["a", "the"],
+    tip: "actress starts with a vowel sound → an actress." },
+  { u: 3, t: "fill", q: "Mr Smith is ___ teacher.", hint: "(a / an / the)", a: ["a"], traps: ["an", "the"],
+    tip: "teacher starts with a consonant sound → a teacher." },
+  { u: 3, t: "fill", q: "It is ___ hourglass.", hint: "(a / an / the)", a: ["an"], traps: ["a", "the"],
+    tip: "The h is silent → an hourglass." },
+  { u: 3, t: "fill", q: "___ earth is a planet.", hint: "(a / an / the)", a: ["The"], traps: ["an", "a"],
+    tip: "There's only one earth → the earth." },
+  { u: 3, t: "fill", q: "How much is ___ clock? (it's right next to me)", hint: "(this / that)", a: ["this"], traps: ["that", "these"],
+    tip: "Near me + one → this." },
+  { u: 3, t: "fill", q: "___ flowers smell lovely! (I'm holding them)", hint: "(these / those)", a: ["These"], traps: ["those", "this"],
+    tip: "Near me + many → these." },
+  { u: 3, t: "fill", q: "\"What's this?\" \"___ an umbrella.\"", a: ["It's", "It is"], traps: ["this is", "that is", "its"],
+    tip: "What's this? → It's an umbrella." },
+
+  { u: 3, t: "spot", s: "Jane is [an] painter.", fix: "a",
+    tip: "painter starts with a consonant sound → a painter." },
+  { u: 3, t: "spot", s: "Helen isn't at [the] home.", fix: "",
+    tip: "No the: at home, go home." },
+  { u: 3, t: "spot", s: "The Pyramids are in [the] Egypt.", fix: "",
+    tip: "No the with most countries: Egypt." },
+  { u: 3, t: "spot", s: "It is [a] hourglass.", fix: "an",
+    tip: "The h is silent → an hourglass." },
+  { u: 3, t: "spot", s: "[The] Mark is a student.", fix: "",
+    tip: "No the with names: Mark is a student." },
+  { u: 3, t: "spot", s: "I have got [a] milk.", fix: "some",
+    tip: "milk is uncountable → some milk." },
+  { u: 3, t: "spot", s: "[An] earth is a planet.", fix: "The",
+    tip: "There's only one earth → the earth." },
+  { u: 3, t: "spot", s: "They have got [a] old car.", fix: "an",
+    tip: "old starts with a vowel sound → an old car." },
+);
+
+// ---------- Unit 4: Have got / Can ----------
+Q.push(
+  { u: 4, t: "mc", q: "She ___ blue eyes.", o: ["have got", "has got", "is got"], a: 1,
+    tip: "he / she / it → has got. I / you / we / they → have got." },
+  { u: 4, t: "mc", q: "They ___ roller blades.", o: ["has got", "have got", "are got"], a: 1,
+    tip: "they → have got." },
+  { u: 4, t: "mc", q: "\"Has she got long hair?\" \"No, she ___.\"", o: ["hasn't", "haven't", "hasn't got"], a: 0,
+    tip: "Short answers have NO got: Yes, she has. / No, she hasn't." },
+  { u: 4, t: "mc", q: "\"Have you got a calculator?\" \"Yes, I ___.\"", o: ["have", "have got", "has"], a: 0,
+    tip: "Short answers have NO got: Yes, I have. / No, I haven't." },
+  { u: 4, t: "mc", q: "\"Have your parents got a jeep?\" \"No, they ___.\"", o: ["haven't", "hasn't", "don't"], a: 0,
+    tip: "Have they...? → Yes, they have. / No, they haven't." },
+  { u: 4, t: "mc", q: "___ Steven got a new bicycle?", o: ["Have", "Has", "Is"], a: 1,
+    tip: "Questions: Has + he/she/it + got...? Have + I/you/we/they + got...?" },
+  { u: 4, t: "mc", q: "A bird ___ a beak, a tail and wings.", o: ["have got", "has got", "is got"], a: 1,
+    tip: "a bird = it → has got." },
+  { u: 4, t: "mc", q: "I ___ a headache.", o: ["has got", "have got", "is got"], a: 1,
+    tip: "We use have got for illnesses: I've got a headache / a cold / a temperature / toothache." },
+  { u: 4, t: "mc", q: "It's a nice flat but it ___ a balcony.", o: ["haven't got", "hasn't got", "isn't got"], a: 1,
+    tip: "it → hasn't got." },
+  { u: 4, t: "mc", q: "Sharks ___ sharp teeth.", o: ["has got", "have got", "is got"], a: 1,
+    tip: "sharks = they → have got." },
+  { u: 4, t: "mc", q: "\"Tom's got a dog.\" Here, Tom's means:", o: ["Tom is", "Tom has", "belongs to Tom"], a: 1,
+    tip: "'s + got = has: Tom's got = Tom has got. It's got = It has got." },
+  { u: 4, t: "mc", q: "\"It's a big house.\" Here, It's means:", o: ["It is", "It has", "Its"], a: 0,
+    tip: "'s with no got after it = is: It's a big house = It is a big house." },
+  { u: 4, t: "mc", q: "A fish ___ walk.", o: ["can", "can't", "cans"], a: 1,
+    tip: "can = I am able to. can't = I am not able to." },
+  { u: 4, t: "mc", q: "A monkey ___ climb trees.", o: ["can", "can't", "cans"], a: 0,
+    tip: "Monkeys are able to climb → can." },
+  { u: 4, t: "mc", q: "She can ___.", o: ["sings", "to sing", "sing"], a: 2,
+    tip: "can + verb, with NO to and NO -s: She can sing." },
+  { u: 4, t: "mc", q: "He ___ swim very well.", o: ["cans", "can", "can to"], a: 1,
+    tip: "can is the same for everyone: I can, he can, they can (never \"cans\")." },
+  { u: 4, t: "mc", q: "\"Can you ski?\" \"No, I ___.\"", o: ["don't", "can't", "not"], a: 1,
+    tip: "Can you...? → Yes, I can. / No, I can't." },
+  { u: 4, t: "mc", q: "\"Can he drive a racing car?\" \"Yes, he ___.\"", o: ["can", "does", "is"], a: 0,
+    tip: "Can he...? → Yes, he can. / No, he can't." },
+  { u: 4, t: "mc", q: "The long form of \"can't\" is:", o: ["can not", "cannot", "cann't"], a: 1,
+    tip: "cannot is ONE word." },
+  { u: 4, t: "mc", q: "\"___ I borrow your dictionary?\" \"Here you are.\"", o: ["Can", "Have", "Do"], a: 0,
+    tip: "Can I...? asks for permission." },
+  { u: 4, t: "mc", q: "\"___ you carry that bag, please?\" \"Certainly.\"", o: ["Can", "Have", "Are"], a: 0,
+    tip: "Can you...? asks someone to do something for you." },
+  { u: 4, t: "mc", q: "Put the words in order: got / Tony's / a / red / ball", o: ["Tony's got a red ball.", "Tony's a got red ball.", "Got Tony's a red ball."], a: 0,
+    tip: "Tony's got (= Tony has got) + a + adjective + noun." },
+  { u: 4, t: "mc", q: "\"Has the giraffe got a short neck?\" \"No, it ___. It's got a long neck.\"", o: ["hasn't", "haven't", "isn't"], a: 0,
+    tip: "Has it...? → Yes, it has. / No, it hasn't." },
+  { u: 4, t: "mc", q: "Grandma can't read the letter. She ___ her glasses.", o: ["hasn't got", "haven't got", "isn't got"], a: 0,
+    tip: "she → hasn't got." },
+
+  { u: 4, t: "fill", q: "Katy likes animals. She ___ a lot of pets.", hint: "(have got)", a: ["has got"], traps: ["have got", "has"],
+    tip: "she → has got." },
+  { u: 4, t: "fill", q: "Most animals ___ four legs.", hint: "(have got)", a: ["have got"], traps: ["has got", "have"],
+    tip: "animals = they → have got." },
+  { u: 4, t: "fill", q: "We must go to the bank. We ___ enough money.", hint: "(not have got)", a: ["haven't got", "have not got"], traps: ["hasn't got", "don't have got"],
+    tip: "we → haven't got." },
+  { u: 4, t: "fill", q: "\"Have you got a pet?\" \"No, I ___.\"", a: ["haven't", "have not"], traps: ["haven't got", "hasn't", "don't"],
+    tip: "Short answers have NO got: No, I haven't." },
+  { u: 4, t: "fill", q: "\"Has Susan got a pet?\" \"Yes, she ___.\"", a: ["has"], traps: ["have", "has got", "is"],
+    tip: "Yes, she has. (No got in short answers.)" },
+  { u: 4, t: "fill", q: "A dog ___ talk.", hint: "(can / can't)", a: ["can't", "cannot"], strict: true, traps: ["can", "can not", "cant"],
+    tip: "Dogs can't talk. Long form: cannot (one word)." },
+  { u: 4, t: "fill", q: "Bill can dive. → ___ Bill dive?", hint: "(question)", a: ["Can"], traps: ["does", "is"],
+    tip: "Questions: Can + subject + verb: Can Bill dive?" },
+
+  { u: 4, t: "spot", s: "She [have] got blue eyes.", fix: "has",
+    tip: "she → has got." },
+  { u: 4, t: "spot", s: "They [has] got a big house.", fix: "have",
+    tip: "they → have got." },
+  { u: 4, t: "spot", s: "\"Has he got a cat?\" \"Yes, he [have].\"", fix: "has",
+    tip: "Has he...? → Yes, he has." },
+  { u: 4, t: "spot", s: "He can [plays] the guitar.", fix: "play",
+    tip: "can + verb with no -s: He can play." },
+  { u: 4, t: "spot", s: "She [cans] swim very well.", fix: "can",
+    tip: "can never takes -s." },
+  { u: 4, t: "spot", s: "I can [to] ride a bike.", fix: "",
+    tip: "No to after can: I can ride a bike." },
+  { u: 4, t: "spot", s: "\"Can you dive?\" \"No, I [don't].\"", fix: "can't",
+    tip: "Can you...? → No, I can't." },
+  { u: 4, t: "spot", s: "[Have] Steven got a new bicycle?", fix: "Has",
+    tip: "Steven = he → Has he got...?" },
+);
+
+// ---------- Unit 5: Possessives ('s / of / whose, possessive adjectives & pronouns) ----------
+Q.push(
+  { u: 5, t: "mc", q: "This is ___ bag.", o: ["Mary's", "Marys", "Marys'"], a: 0,
+    tip: "One person + 's: Mary's bag." },
+  { u: 5, t: "mc", q: "___ eyes are green.", o: ["The eyes of Helen", "Helen's", "Helens'"], a: 1,
+    tip: "People and animals → 's: Helen's eyes." },
+  { u: 5, t: "mc", q: "___ are red.", o: ["The leaves of the tree", "The trees leaves", "The leaves's tree"], a: 0,
+    tip: "Things → of: the leaves of the tree, the legs of the table." },
+  { u: 5, t: "mc", q: "The ___ shoes are dirty. (more than one girl)", o: ["girls'", "girls", "girl's'"], a: 0,
+    tip: "Plural ending in -s → only ': the girls' shoes." },
+  { u: 5, t: "mc", q: "These are the ___ toys.", o: ["childrens'", "children's", "childs'"], a: 1,
+    tip: "Irregular plurals (children, men, women) → 's: children's." },
+  { u: 5, t: "mc", q: "Those are the ___ gloves.", o: ["mans'", "men's", "mens'"], a: 1,
+    tip: "men is an irregular plural → men's." },
+  { u: 5, t: "mc", q: "Paul and Tina live together. It's ___.", o: ["Paul's and Tina's house", "Paul and Tina's house", "Paul's and Tina house"], a: 1,
+    tip: "ONE thing that belongs to both → 's only on the last name: Paul and Tina's house." },
+  { u: 5, t: "mc", q: "Mary and Sarah each have their own skates. These are ___ skates.", o: ["Mary and Sarah's", "Mary's and Sarah's", "Marys and Sarahs"], a: 1,
+    tip: "Each one has their own → 's on every name: Mary's and Sarah's skates." },
+  { u: 5, t: "mc", q: "\"___ horse is this?\" \"It's Helen's.\"", o: ["Who", "Whose", "Who's"], a: 1,
+    tip: "Whose = belongs to who? (Who's = Who is.)" },
+  { u: 5, t: "mc", q: "\"Kim's got a pet.\" Here, 's means:", o: ["is", "has", "belongs to"], a: 1,
+    tip: "'s + got = has." },
+  { u: 5, t: "mc", q: "\"This is Mr Dixon's house.\" Here, 's means:", o: ["is", "has", "belongs to"], a: 2,
+    tip: "Mr Dixon's house = the house belongs to Mr Dixon (possessive case)." },
+  { u: 5, t: "mc", q: "\"She's a doctor.\" Here, 's means:", o: ["is", "has", "belongs to"], a: 0,
+    tip: "She's a doctor = She is a doctor." },
+  { u: 5, t: "mc", q: "This is my umbrella. = This umbrella is ___.", o: ["my", "mine", "me"], a: 1,
+    tip: "my + noun (my umbrella). mine with NO noun after it (it's mine)." },
+  { u: 5, t: "mc", q: "Is this ___ house?", o: ["yours", "your", "you"], a: 1,
+    tip: "A noun comes next (house) → your." },
+  { u: 5, t: "mc", q: "That bicycle is ___.", o: ["her", "hers", "she"], a: 1,
+    tip: "No noun after it → hers." },
+  { u: 5, t: "mc", q: "These aren't our pens. They are ___.", o: ["your", "yours", "you"], a: 1,
+    tip: "No noun after it → yours." },
+  { u: 5, t: "mc", q: "She's my sister. ___ name is Ann.", o: ["Her", "Hers", "She"], a: 0,
+    tip: "A noun comes next (name) → her." },
+  { u: 5, t: "mc", q: "Mr and Mrs Tate live next door. This is ___ dog.", o: ["theirs", "their", "they"], a: 1,
+    tip: "A noun comes next (dog) → their." },
+  { u: 5, t: "mc", q: "Jason lives in a big house. It belongs to ___ father.", o: ["him", "his", "he"], a: 1,
+    tip: "his + noun: his father." },
+  { u: 5, t: "mc", q: "We take ___ children to the park every afternoon.", o: ["our", "ours", "us"], a: 0,
+    tip: "our + noun: our children." },
+  { u: 5, t: "mc", q: "Excuse me, is this pen ___?", o: ["yours", "you", "your"], a: 0,
+    tip: "Nothing after it → yours." },
+  { u: 5, t: "mc", q: "The ___ tail is long. (one cat)", o: ["cat's", "cats'", "cats"], a: 0,
+    tip: "One animal + 's: the cat's tail." },
+  { u: 5, t: "mc", q: "Which is correct?", o: ["The legs of the table", "The tables legs", "The legs's table"], a: 0,
+    tip: "Things → of: the legs of the table." },
+
+  { u: 5, t: "fill", q: "This is my bag. → It is ___.", a: ["mine"], traps: ["my", "me"],
+    tip: "my bag → mine." },
+  { u: 5, t: "fill", q: "These are her books. → They are ___.", a: ["hers"], traps: ["her", "her's"],
+    tip: "her books → hers. Never her's!" },
+  { u: 5, t: "fill", q: "This is our car. → It is ___.", a: ["ours"], traps: ["our", "our's"],
+    tip: "our car → ours. Never our's!" },
+  { u: 5, t: "fill", q: "Those are their skates. → They are ___.", a: ["theirs"], traps: ["their", "their's", "there's"],
+    tip: "their skates → theirs. Never their's!" },
+  { u: 5, t: "fill", q: "Greg wants to buy a house. ___ flat is too small.", a: ["His"], traps: ["he's", "him", "he"],
+    tip: "his + noun: his flat." },
+  { u: 5, t: "fill", q: "It's raining! Take ___ umbrella with you.", a: ["your"], traps: ["you're", "yours", "you"],
+    tip: "your + noun: your umbrella." },
+  { u: 5, t: "fill", q: "\"Whose ball is this?\" \"It's ___ ball.\"", hint: "(Tom)", a: ["Tom's"], strict: true, traps: ["Toms", "Toms'"],
+    tip: "One person + 's: Tom's ball." },
+
+  { u: 5, t: "spot", s: "[Mine] room is big.", fix: "My",
+    tip: "A noun comes next (room) → My room." },
+  { u: 5, t: "spot", s: "The [womens'] dresses are red.", fix: "women's",
+    tip: "women is an irregular plural → women's." },
+  { u: 5, t: "spot", s: "Are those pencils [your]?", fix: "yours",
+    tip: "No noun after it → yours." },
+  { u: 5, t: "spot", s: "\"Whose are these rackets?\" \"They're [their].\"", fix: "theirs",
+    tip: "No noun after it → theirs." },
+  { u: 5, t: "spot", s: "This is [hers] book.", fix: "her",
+    tip: "A noun comes next (book) → her book." },
+  { u: 5, t: "spot", s: "Is that [Kates'] hat?", fix: "Kate's",
+    tip: "One person + 's: Kate's hat." },
+  { u: 5, t: "spot", s: "That is Bill's car. It's [him].", fix: "his",
+    tip: "Belongs to him → it's his." },
+  { u: 5, t: "spot", s: "These are the [childrens] toys.", fix: "children's",
+    tip: "children + 's → children's toys." },
+);
 
 // ---------- Unit 6: Present Continuous ----------
 Q.push(
@@ -741,7 +1207,6 @@ Q.push(
   { u: 10, t: "spot", s: "There is [few] snow on the mountains.", fix: "little",
     tip: "snow = uncountable → little." },
 );
-// @@QUESTIONS@@
 </script>
 <script>
 "use strict";
@@ -973,8 +1438,12 @@ function show(id) {
 }
 
 // ===== Menu =====
-const selectedUnits = new Set(store.get("gm_units", Object.keys(UNITS).map(Number)));
+// Tablets and phones: say "tap" instead of "click" and skip the keyboard hints
+const TOUCH = window.matchMedia("(pointer: coarse)").matches;
+const TAP = TOUCH ? "Tap" : "Click";
+const selectedUnits = new Set(store.get("gm_units_v2", Object.keys(UNITS).map(Number)));
 function renderMenu() {
+  $("unitsLabel").textContent = `UNITS (${TAP.toLowerCase()} to switch on/off)`;
   $("unitChips").innerHTML = Object.entries(UNITS).map(([u, name]) =>
     `<button type="button" class="unit-chip" data-unit="${u}" aria-pressed="${selectedUnits.has(+u)}"><b>${u}</b>${esc(name)}</button>`).join("");
   const bp = store.get("gm_best_practice", 0), bt = store.get("gm_best_test", 0);
@@ -994,9 +1463,16 @@ $("unitChips").addEventListener("click", (e) => {
     selectedUnits.delete(u);
   } else selectedUnits.add(u);
   chip.setAttribute("aria-pressed", selectedUnits.has(u));
-  store.set("gm_units", [...selectedUnits]);
+  store.set("gm_units_v2", [...selectedUnits]);
   sound.click();
 });
+document.querySelectorAll("[data-preset]").forEach((b) => (b.onclick = () => {
+  selectedUnits.clear();
+  b.dataset.preset.split(",").forEach((u) => selectedUnits.add(+u));
+  store.set("gm_units_v2", [...selectedUnits]);
+  renderMenu();
+  sound.click();
+}));
 $("nameInput").addEventListener("input", (e) => store.set("gm_name", e.target.value.trim()));
 $("muteBtn").onclick = toggleMute;
 $("practiceBtn").onclick = () => startGame("practice");
@@ -1067,21 +1543,21 @@ function renderQuestion() {
     body.innerHTML = `<div class="options">${order.map((oi, k) =>
       `<button type="button" class="btn opt" data-i="${oi}"><span class="key">${k + 1}</span><span>${esc(q.o[oi])}</span></button>`).join("")}</div>`;
     body.querySelectorAll(".opt").forEach((b) => (b.onclick = () => answerMc(+b.dataset.i, b)));
-    $("keyHint").textContent = `Press 1-${q.o.length} or click`;
+    $("keyHint").textContent = `Press 1-${q.o.length} or click`;   // hidden on touch screens by CSS
   } else if (q.t === "fill") {
     $("qText").innerHTML = gapHtml(q.q);
     body.innerHTML = (q.hint ? `<div class="q-hint">${esc(q.hint)}</div>` : "") +
-      `<div class="fill-row"><input class="answer-input" id="answerInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer">` +
-      `<button type="button" class="btn green" id="checkBtn">${S.mode === "test" ? "OK" : "Check"}</button></div>`;
-    $("checkBtn").onclick = answerFill;
+      `<form class="fill-row" id="fillForm"><input class="answer-input" id="answerInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="Your answer">` +
+      `<button type="submit" class="btn green" id="checkBtn">${S.mode === "test" ? "OK" : "Check"}</button></form>`;
+    $("fillForm").onsubmit = (e) => { e.preventDefault(); answerFill(); };
     $("answerInput").focus();
     $("keyHint").textContent = "Type, then press Enter";
   } else {
     $("qText").textContent = "Which word is wrong?";
-    body.innerHTML = `<p class="spot-help">Click the block with the mistake.</p><div class="tokens">${parseSpot(q).words.map((w, i) =>
+    body.innerHTML = `<p class="spot-help">${TAP} the block with the mistake.</p><div class="tokens">${parseSpot(q).words.map((w, i) =>
       `<button type="button" class="token" data-i="${i}">${esc(w.text)}</button>`).join("")}</div>`;
     body.querySelectorAll(".token").forEach((b) => (b.onclick = () => answerSpot(+b.dataset.i, b)));
-    $("keyHint").textContent = "Click a word block";
+    $("keyHint").textContent = "";
   }
 }
 
@@ -1162,7 +1638,7 @@ function react(entry, anchor) {
   const nb = $("nextBtn");
   nb.classList.remove("invisible");
   nb.focus({ preventScroll: true });
-  fb.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  document.querySelector(".card-actions").scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 function restartAnim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 function burst(x, y, colors) {
